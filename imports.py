@@ -5,3 +5,5 @@ import tqdm as tqdm
 from tqdm import trange
 import matplotlib.pyplot as plt
 from matplotlib import colors
+from statsmodels.tsa.stattools import adfuller, kpss
+import pandas as pd
