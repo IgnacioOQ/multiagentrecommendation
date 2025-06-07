@@ -82,6 +82,51 @@ def rolling_stationarity_test(series, window_size=1000, step_size=500, verbose=F
         })
 
     return pd.DataFrame(results)
+    """
+    Runs ADF and KPSS tests over sliding windows of a time series.
+
+    Parameters:
+        series: list or array-like, the time series to test
+        window_size: int, length of each rolling window
+        step_size: int, step between windows
+        verbose: bool, if True, prints stats for each window
+
+    Returns:
+        DataFrame with columns: ['start', 'end', 'adf_pvalue', 'kpss_pvalue']
+    """
+    results = []
+
+    series = pd.Series(series)
+
+    for start in range(0, len(series) - window_size + 1, step_size):
+        end = start + window_size
+        window = series[start:end]
+
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", InterpolationWarning)
+                kpss_result = kpss(window, regression='c', nlags='auto')
+
+            adf_result = adfuller(window, autolag="AIC")
+        except Exception as e:
+            if verbose:
+                print(f"Window {start}-{end} failed: {e}")
+            continue
+
+        adf_p = adf_result[1]
+        kpss_p = kpss_result[1]
+
+        if verbose:
+            print(f"Window {start}-{end}: ADF p={adf_p:.4f}, KPSS p={kpss_p:.4f}")
+
+        results.append({
+            "start": start,
+            "end": end,
+            "adf_pvalue": adf_p,
+            "kpss_pvalue": kpss_p
+        })
+
+    return pd.DataFrame(results)
 
 def plot_rolling_stationarity_pvalues(df, alpha=0.05, title_prefix=""):
     """

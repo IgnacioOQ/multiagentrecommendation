@@ -7,3 +7,5 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from statsmodels.tsa.stattools import adfuller, kpss
 import pandas as pd
+import warnings
+from statsmodels.tools.sm_exceptions import InterpolationWarning

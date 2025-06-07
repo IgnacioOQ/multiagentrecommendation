@@ -357,7 +357,7 @@ def run_recommender_simulation(
         environment.step_context()
         modulator_class.step()
         if not stationarity:
-          if step % 100 == 0:
+        #   if step % 100 == 0:
             environment.shift_environment_right()
 
     # Compute rolling statistics
