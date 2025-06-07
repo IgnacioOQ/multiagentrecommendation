@@ -1,3 +1,5 @@
+from imports import *
+
 # Recommender Agent
 class RecommenderAgent:
     def __init__(self,
@@ -122,7 +124,7 @@ class RecommendedAgent:
                  exploration_rate=1,
                  exploration_decay=0.999,
                  min_exploration_rate=0.001,
-                 type=False):
+                 type='egreedy'):
         """
         Agent decides to accept/decline a recommendation given context and recommendation.
         """
@@ -133,7 +135,7 @@ class RecommendedAgent:
         self.q_table = {}  # key: (context, recommendation)
         self.action_counts = {}
         self.time = 0  # for UCB
-        self.use_ucb = use_ucb
+        self.type = type
 
     def act(self, context, recommendation):
         """
@@ -146,10 +148,12 @@ class RecommendedAgent:
 
         self.time += 1
 
-        if self.use_ucb:
-            action = self.ucb_choice(key)
-        else:
+        if self.type == 'egreedy':
             action = self.egreedy_choice(key)
+        if self.type == 'ucb':
+            action = self.ucb_choice(key)
+        if self.type == 'softmax':
+            action = self.softmax_choice(key)
 
         self.action_counts[key][action] += 1
         return action == 0  # True = accept, False = decline
@@ -170,6 +174,24 @@ class RecommendedAgent:
         ucb_values = self.q_table[key] + \
                      self.exploration_rate * np.sqrt(np.log(self.time + 1) / (self.action_counts[key] + 1e-5))
         return np.argmax(ucb_values)
+
+    def softmax_choice(self, context, tau=1.0):
+        """
+        Softmax-based action selection using scipy's softmax.
+    
+        Args:
+            context (int): The current state or context.
+            tau (float): Temperature parameter to adjust exploration level.
+    
+        Returns:
+            int: Selected action index.
+        """
+        q_values = self.q_table[context]
+        # Apply temperature
+        scaled_qs = q_values / tau
+        probabilities = softmax(scaled_qs)
+        return np.random.choice(self.n_actions, p=probabilities)
+
 
     def update(self, context, recommendation, accepted, reward):
         """
