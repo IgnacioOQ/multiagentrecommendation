@@ -226,7 +226,7 @@ class RecommendedAgent:
                 if key in self.q_table:
                     q_matrix[i, j] = self.q_table[key][0]  # Q-value for action 0 (accept)
 
-        plt.figure(figsize=(6, 5))
+        plt.figure(figsize=(6, 4))
         im = plt.imshow(q_matrix, cmap="viridis", origin="lower", aspect="auto",
                         extent=[0, n_contexts, 0, n_recommendations])
         plt.colorbar(im, label="Q-value for Accept (Action=0)")
