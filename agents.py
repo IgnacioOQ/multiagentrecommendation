@@ -122,7 +122,7 @@ class RecommendedAgent:
                  exploration_rate=1,
                  exploration_decay=0.999,
                  min_exploration_rate=0.001,
-                 use_ucb=False):
+                 type=False):
         """
         Agent decides to accept/decline a recommendation given context and recommendation.
         """
