@@ -5,7 +5,7 @@ class RecommenderAgent:
                  exploration_rate=1,
                  exploration_decay=0.999,
                  min_exploration_rate=0.001,
-                 use_ucb=False):
+                 type='egreedy'):
         """
         Agent selects a recommendation given context.
         """
@@ -16,7 +16,7 @@ class RecommenderAgent:
         self.q_table = {}  # key: context
         self.action_counts = {}  # key: context
         self.time = 0  # for UCB
-        self.use_ucb = use_ucb
+        self.type = type
 
     def act(self, context):
         """
@@ -28,10 +28,12 @@ class RecommenderAgent:
 
         self.time += 1
 
-        if self.use_ucb:
-            action = self.ucb_choice(context)
-        else:
+        if self.type == 'egreedy':
             action = self.egreedy_choice(context)
+        if self.type == 'ucb':
+            action = self.ucb_choice(context)
+        if self.type == 'softmax':
+            action = self.ucb_choice(context)
 
         self.action_counts[context][action] += 1
         return action
@@ -53,6 +55,24 @@ class RecommenderAgent:
                      self.exploration_rate * np.sqrt(np.log(self.time + 1) / (self.action_counts[context] + 1e-5))
         return np.argmax(ucb_values)
 
+
+    def softmax_choice(self, context, tau=1.0):
+        """
+        Softmax-based action selection using scipy's softmax.
+    
+        Args:
+            context (int): The current state or context.
+            tau (float): Temperature parameter to adjust exploration level.
+    
+        Returns:
+            int: Selected action index.
+        """
+        q_values = self.q_table[context]
+        # Apply temperature
+        scaled_qs = q_values / tau
+        probabilities = softmax(scaled_qs)
+        return np.random.choice(self.n_actions, p=probabilities)
+        
     def update(self, context, recommendation, reward):
         """
         Update Q-value after observing reward.
