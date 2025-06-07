@@ -31,16 +31,7 @@ class ExogenousRewardEnvironment:
                     self.gaussian_peak(j, i, self.global_max_pos[1], self.global_max_pos[0], strength=100),
                     self.gaussian_peak(j, i, self.local_max_pos[1], self.local_max_pos[0], strength=60)
                 )
-
-
-        # --- Normalize values to range [-10, 10] ---
-        # min_val = np.min(self.state_space)
-        # max_val = np.max(self.state_space)
-        # if max_val > min_val:
-        #     self.state_space = -10 + 20 * (self.state_space - min_val) / (max_val - min_val)
-        # else:
-        #     self.state_space.fill(0)
-        # General normalization to any range [lower_bound, upper_bound]
+        # Normalize the state space to a specific range
         lower_bound = -50  # for example
         upper_bound = 100
 
@@ -71,13 +62,36 @@ class ExogenousRewardEnvironment:
         else:
             return None
 
-    def visualize_landscape(self):
+    def visualize_landscape(self, current_y=None,mark_context=False):
+        """
+        Visualize the 2D state landscape and mark global/local maxima,
+        as well as the current context with an optional current_y.
+
+        Args:
+            current_y (int, optional): If provided, marks (current_context, current_y) as current position.
+        """
         plt.figure(figsize=(6, 4))
         plt.imshow(self.state_space, cmap="viridis", origin="lower", aspect="auto",
-                   extent=[0, self.n_contexts, 0, self.n_recommendations])
+                extent=[0, self.n_contexts, 0, self.n_recommendations])
         plt.colorbar(label="State Value")
-        plt.scatter(self.global_max_pos[1], self.global_max_pos[0], color="red", marker="o", s=100, label="Global Max")
-        plt.scatter(self.local_max_pos[1], self.local_max_pos[0], color="orange", marker="o", s=100, label="Local Max")
+        
+        # Mark maxima
+        plt.scatter(self.global_max_pos[1] + 0.5, self.global_max_pos[0] + 0.5,
+            color="red", marker="o", s=100, label="Global Max")
+        plt.scatter(self.local_max_pos[1] + 0.5, self.local_max_pos[0] + 0.5,
+            color="orange", marker="o", s=100, label="Local Max")
+
+        # Mark current context with vertical line
+        if mark_context:
+            plt.axvline(x=self.current_context, color="green", linestyle="--", linewidth=2, label="Current Context")
+                # Annotate current context number on x-axis
+            plt.text(self.current_context + 0.5, -2, f"Context {self.current_context}",
+             color="green", ha="center", va="top", fontsize=10, rotation=30)
+        
+        # Optionally show full (context, recommendation) location
+        if current_y is not None:
+            plt.scatter(self.current_context, current_y, color="lime", marker="x", s=100, label="Current Position")
+
         plt.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
         plt.title("Discrete 2D State Space with Smooth Heights")
         plt.xlabel("Contexts (X-axis)")
