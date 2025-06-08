@@ -1,4 +1,5 @@
 from imports import *
+from agents import BaseQLearningAgent
 
 class MoodSwings:
     def __init__(self, n_moods=50):
@@ -46,106 +47,183 @@ class MoodSwings:
         return reward + self.mood
     
     
-class HomeostaticModulator:
-    def __init__(self,
-                exploration_rate=1,
-                exploration_decay=0.999,
-                min_exploration_rate=0.001,
-                type='egreedy',
-                setpoint=0):
-        """
-        Agent decides to accept/decline a recommendation given context and recommendation.
-        """
-        self.exploration_rate = exploration_rate
-        self.exploration_decay = exploration_decay
-        self.min_exploration_rate = min_exploration_rate
+# class HomeostaticModulator(BaseQLearningAgent):
+#     def __init__(self, exploration_rate=1.0, exploration_decay=0.999,
+#                  min_exploration_rate=0.001, strategy='egreedy', setpoint=0):
+#         self.moves = np.arange(-20, 20)
+#         self.setpoint = setpoint
+#         self.modulation_history = []  # stores (step, exo_reward, modulation, modulated_reward)
+#         super().__init__(
+#             n_actions=len(self.moves),
+#             exploration_rate=exploration_rate,
+#             exploration_decay=exploration_decay,
+#             min_exploration_rate=min_exploration_rate,
+#             strategy=strategy
+#         )
+
+#     def act(self, exogenous_reward):
+#         """
+#         Selects a modulation amount from self.moves based on current Q-values
+#         for the rounded exogenous reward.
+#         """
+#         key = round(exogenous_reward, 2)
+#         action_idx = self.choose_action(key)
+#         return self.moves[action_idx]
+
+#     def modify_reward(self, exogenous_reward, step=None):
+#         """
+#         Modulates the reward and logs history.
+#         """
+#         modulation = self.act(exogenous_reward)
+#         modulated_reward = self.update_modulation(exogenous_reward, modulation)
+
+#         self.modulation_history.append({
+#             "step": step,
+#             "exogenous_reward": exogenous_reward,
+#             "modulation": modulation,
+#             "modulated_reward": modulated_reward,
+#             "setpoint": self.setpoint
+#         })
+
+#         return modulated_reward
+
+#     def update_modulation(self, exogenous_reward, modulation):
+#         key = round(exogenous_reward, 2)
+#         action_idx = np.where(self.moves == modulation)[0][0]
+#         modulated_reward = exogenous_reward - modulation
+#         reward = -abs(modulated_reward - self.setpoint)
+#         self.update(key, action_idx, reward)
+#         return modulated_reward
+
+#     def plot_modulation_trajectory(self, max_points=1000):
+#         """
+#         Plot the evolution of exogenous vs. modulated rewards and modulation magnitude.
+#         """
+#         if not self.modulation_history:
+#             print("No modulation history to plot.")
+#             return
+
+#         df = pd.DataFrame(self.modulation_history)
+#         if max_points and len(df) > max_points:
+#             df = df.iloc[-max_points:]  # keep recent
+
+#         plt.figure(figsize=(12, 6))
+
+#         # 1. Exogenous vs. Modulated Reward
+#         plt.subplot(2, 1, 1)
+#         plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward", color="blue")
+#         plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward", color="green")
+#         plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
+#         plt.title("Exogenous vs. Modulated Reward")
+#         plt.ylabel("Reward")
+#         plt.legend()
+#         plt.grid(True)
+
+#         # 2. Modulation
+#         plt.subplot(2, 1, 2)
+#         plt.plot(df["step"], df["modulation"], label="Modulation", color="purple")
+#         plt.title("Modulation Over Time")
+#         plt.xlabel("Step")
+#         plt.ylabel("Modulation Value")
+#         plt.grid(True)
+#         plt.tight_layout()
+#         plt.show()
+
+#     def step(self):
+#         pass  # Optional hook for time-dependent dynamics
+
+
+class HomeostaticModulator(BaseQLearningAgent):
+    def __init__(self, exploration_rate=1.0, exploration_decay=0.999,
+                 min_exploration_rate=0.001, strategy='egreedy', setpoint=0, lag=0):
         self.moves = np.arange(-20, 20)
-        self.n_actions = len(self.moves)  # 0 = accept, 1 = decline
-        self.q_table = {}  # key: (exogenous_reward)
-        self.action_counts = {}
-        self.time = 0  # for UCB
-        self.type = type
         self.setpoint = setpoint
+        self.modulation_history = []
+        self.lag = lag
+        self.pending_modulations = deque(maxlen=lag + 1)  # FIFO queue
+        super().__init__(
+            n_actions=len(self.moves),
+            exploration_rate=exploration_rate,
+            exploration_decay=exploration_decay,
+            min_exploration_rate=min_exploration_rate,
+            strategy=strategy
+        )
 
     def act(self, exogenous_reward):
-        """
-        Decide to accept (True) or decline (False) the recommendation.
-        """
-        key = exogenous_reward
-        if key not in self.q_table:
-            self.q_table[key] = np.zeros(self.n_actions)
-            self.action_counts[key] = np.zeros(self.n_actions)
+        key = round(exogenous_reward, 2)
+        action_idx = self.choose_action(key)
+        return self.moves[action_idx]
 
-        self.time += 1
-
-        if self.type == 'egreedy':
-            action = self.egreedy_choice(key)
-        if self.type == 'ucb':
-            action = self.ucb_choice(key)
-        if self.type == 'softmax':
-            action = self.softmax_choice(key)
-
-        self.action_counts[key][action] += 1
-        # action = self.moves[action]
-        return action  # Number between -20 and 20
-
-    def egreedy_choice(self, key):
+    def modify_reward(self, exogenous_reward, step=None):
         """
-        Epsilon-greedy selection.
+        Delays the application of modulation by `lag` steps.
+        Learns now, but modulates later.
         """
-        if random.uniform(0, 1) < self.exploration_rate:
-            return random.randint(0, self.n_actions - 1)
-        return np.argmax(self.q_table[key])
+        # Compute modulation for current exogenous_reward
+        modulation = self.act(exogenous_reward)
+        self.update_modulation(exogenous_reward, modulation)  # learning still happens now
 
-    def ucb_choice(self, key):
-        """
-        Upper Confidence Bound (UCB) selection.
-        """
-        total_counts = np.sum(self.action_counts[key]) + 1e-5
-        ucb_values = self.q_table[key] + \
-                    self.exploration_rate * np.sqrt(np.log(self.time + 1) / (self.action_counts[key] + 1e-5))
-        return np.argmax(ucb_values)
+        # Store for future application
+        self.pending_modulations.append((step, exogenous_reward, modulation))
 
-    def softmax_choice(self, context, tau=1.0):
-        """
-        Softmax-based action selection using scipy's softmax.
-    
-        Args:
-            context (int): The current state or context.
-            tau (float): Temperature parameter to adjust exploration level.
-    
-        Returns:
-            int: Selected action index.
-        """
-        q_values = self.q_table[context]
-        # Apply temperature
-        scaled_qs = q_values / tau
-        probabilities = softmax(scaled_qs)
-        return np.random.choice(self.n_actions, p=probabilities)
+        # If enough time has passed, apply oldest modulation
+        if step is not None and step >= self.lag:
+            apply_step, old_exo, old_mod = self.pending_modulations.popleft()
+            modulated_reward = old_exo - old_mod
+        else:
+            apply_step, old_exo, old_mod = step, exogenous_reward, 0
+            modulated_reward = exogenous_reward
 
-    def modify_reward(self, exogenous_reward):
-        action = self.act(exogenous_reward)
-        modulated_reward = self.update(exogenous_reward, action)
+        # Record history
+        self.modulation_history.append({
+            "step": step,
+            "exogenous_reward": exogenous_reward,
+            "applied_step": apply_step,
+            "modulation": old_mod,
+            "modulated_reward": modulated_reward,
+            "setpoint": self.setpoint
+        })
+
         return modulated_reward
 
-    def update(self, exogenous_reward, action):
-        """
-        Update Q-value after observing reward.
-        """
-        key = exogenous_reward
-        n = self.action_counts[key][action]
-        q = self.q_table[key][action]
-        modulated_reward = exogenous_reward - self.moves[action]  # Action is the index in moves
+    def update_modulation(self, exogenous_reward, modulation):
+        key = round(exogenous_reward, 2)
+        action_idx = np.where(self.moves == modulation)[0][0]
+        modulated_reward = exogenous_reward - modulation
         reward = -abs(modulated_reward - self.setpoint)
-        self.q_table[key][action] = q + (reward - q) / n
-
-        # Decay exploration for epsilon-greedy
-        if self.type == 'egreedy':
-            self.exploration_rate = max(self.min_exploration_rate,
-                                        self.exploration_rate * self.exploration_decay)
-                
+        self.update(key, action_idx, reward)
         return modulated_reward
-                
+
+    def plot_modulation_trajectory(self, max_points=1000):
+        if not self.modulation_history:
+            print("No modulation history to plot.")
+            return
+
+        df = pd.DataFrame(self.modulation_history)
+        if max_points and len(df) > max_points:
+            df = df.iloc[-max_points:]
+
+        plt.figure(figsize=(12, 6))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward", color="blue")
+        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (lagged)", color="green")
+        plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
+        plt.ylabel("Reward")
+        plt.legend()
+        plt.grid(True)
+
+        plt.subplot(2, 1, 2)
+        plt.plot(df["step"], df["modulation"], label="Applied Modulation", color="purple")
+        plt.xlabel("Step")
+        plt.ylabel("Modulation")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    def step(self):
+        pass
+
 # ============================================
 # PID Controller
 # ============================================

@@ -1,5 +1,7 @@
 from imports import *
 from reward_modulators import *
+from agents import *
+from environment import ExogenousRewardEnvironment
 
 def run_recommender_simulation(
     recommender_agent_class,
@@ -17,7 +19,7 @@ def run_recommender_simulation(
     initialize_recommended = True,
     stationarity = True,
     landscape_type='default',
-    type='egreedy',
+    strategy='egreedy',
     modulated = False
 ) -> dict:
     """
@@ -52,7 +54,7 @@ def run_recommender_simulation(
         exploration_rate=exploration_rate,
         exploration_decay=exploration_decay
     )
-    recommended_agent = recommended_agent_class(exploration_rate=exploration_rate,exploration_decay=exploration_decay,type=type)
+    recommended_agent = recommended_agent_class(exploration_rate=exploration_rate,exploration_decay=exploration_decay,strategy=strategy)
     modulator_class = modulator_class()
 
     recommender_rewards = []
@@ -154,15 +156,15 @@ def run_recommender_simulation(
         
         if modulated:
             modulator_class.step()
-            recommended_agent.update(context, recommendation, accept, modulated_reward)
+            recommended_agent.update_reward(context, recommendation, accept, modulated_reward)
             original_modulated_differences.append(agent_reward - modulated_reward)
             recommended_rewards.append(modulated_reward)
         else:
-            recommended_agent.update(context, recommendation, accept, agent_reward)
+            recommended_agent.update_reward(context, recommendation, accept, agent_reward)
             original_modulated_differences.append(agent_reward)
             recommended_rewards.append(agent_reward)
             
-        recommender_agent.update(context, recommendation, recommender_reward)
+        recommender_agent.update_reward(context, recommendation, recommender_reward)
         recommender_rewards.append(recommender_reward)
         recommender_contexts.append(context)
 
@@ -178,7 +180,6 @@ def run_recommender_simulation(
         recommender_action_counts[recommendation, context] += 1
 
         environment.step_context()
-        modulator_class.step()
         if not stationarity:
         #   if step % 100 == 0:
             environment.shift_environment_right()
