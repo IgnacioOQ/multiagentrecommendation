@@ -59,18 +59,19 @@ class HomeostaticModulator:
         self.exploration_rate = exploration_rate
         self.exploration_decay = exploration_decay
         self.min_exploration_rate = min_exploration_rate
-        self.n_actions = 2  # 0 = accept, 1 = decline
-        self.q_table = {}  # key: (context, recommendation)
+        self.moves = np.arange(-20, 20)
+        self.n_actions = len(self.moves)  # 0 = accept, 1 = decline
+        self.q_table = {}  # key: (exogenous_reward)
         self.action_counts = {}
         self.time = 0  # for UCB
         self.type = type
         self.setpoint = setpoint
 
-    def act(self, context, recommendation):
+    def act(self, exogenous_reward):
         """
         Decide to accept (True) or decline (False) the recommendation.
         """
-        key = (context, recommendation)
+        key = exogenous_reward
         if key not in self.q_table:
             self.q_table[key] = np.zeros(self.n_actions)
             self.action_counts[key] = np.zeros(self.n_actions)
@@ -85,7 +86,8 @@ class HomeostaticModulator:
             action = self.softmax_choice(key)
 
         self.action_counts[key][action] += 1
-        return action == 0  # True = accept, False = decline
+        # action = self.moves[action]
+        return action  # Number between -20 and 20
 
     def egreedy_choice(self, key):
         """
@@ -121,23 +123,28 @@ class HomeostaticModulator:
         probabilities = softmax(scaled_qs)
         return np.random.choice(self.n_actions, p=probabilities)
 
+    def modify_reward(self, exogenous_reward):
+        action = self.act(exogenous_reward)
+        modulated_reward = self.update(exogenous_reward, action)
+        return modulated_reward
 
-    def update(self, context, recommendation, accepted, reward):
+    def update(self, exogenous_reward, action):
         """
         Update Q-value after observing reward.
         """
-        key = (context, recommendation)
-        action = 0 if accepted else 1
+        key = exogenous_reward
         n = self.action_counts[key][action]
         q = self.q_table[key][action]
+        modulated_reward = exogenous_reward - self.moves[action]  # Action is the index in moves
+        reward = -abs(modulated_reward - self.setpoint)
         self.q_table[key][action] = q + (reward - q) / n
 
         # Decay exploration for epsilon-greedy
-        if not self.type == 'ucb':
+        if self.type == 'egreedy':
             self.exploration_rate = max(self.min_exploration_rate,
                                         self.exploration_rate * self.exploration_decay)
                 
-                
+        return modulated_reward
                 
 # ============================================
 # PID Controller

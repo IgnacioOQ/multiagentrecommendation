@@ -88,7 +88,7 @@ class RecommenderAgent:
         self.q_table[context][recommendation] = q + (reward - q) / n
 
         # Decay exploration for epsilon-greedy
-        if not self.type == 'ucb':
+        if self.type == 'egreedy':
             self.exploration_rate = max(self.min_exploration_rate,
                                         self.exploration_rate * self.exploration_decay)
 
@@ -204,7 +204,7 @@ class RecommendedAgent:
         self.q_table[key][action] = q + (reward - q) / n
 
         # Decay exploration for epsilon-greedy
-        if not self.type == 'ucb':
+        if self.type == 'egreedy':
             self.exploration_rate = max(self.min_exploration_rate,
                                         self.exploration_rate * self.exploration_decay)
 
