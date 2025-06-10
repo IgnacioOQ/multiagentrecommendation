@@ -132,7 +132,6 @@ class MoodSwings:
 #     def step(self):
 #         pass  # Optional hook for time-dependent dynamics
 
-
 class HomeostaticModulator(BaseQLearningAgent):
     def __init__(self, exploration_rate=1.0, exploration_decay=0.999,
                  min_exploration_rate=0.001, strategy='egreedy', setpoint=0, lag=0):
