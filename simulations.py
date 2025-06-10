@@ -74,6 +74,7 @@ def run_recommender_simulation(
     total_rec_reward = 0
     total_user_reward = 0
 
+    environment.visualize_landscape()
     # if initialize_recommender:
     #   n_actions = environment.n_recommendations
     #   n_contexts = environment.n_contexts  # list or iterable of context values
@@ -145,13 +146,41 @@ def run_recommender_simulation(
         lower_bound = -50
         upper_bound = 100
 
+        # if landscape_type == 'default':
+        #     # --- 2D Gaussian bump around (local_ctx, local_rec) ---
+        #     context_spread = environment.n_contexts / 10
+        #     rec_spread = environment.n_recommendations / 10
+
+        #     for context in range(environment.n_contexts):
+        #         for recommendation in range(environment.n_recommendations):
+        #             key = (context, recommendation)
+
+        #             # Gaussian distance from local max
+        #             dist_sq = ((context - local_ctx) ** 2) / (2 * context_spread ** 2) + \
+        #                     ((recommendation - local_rec) ** 2) / (2 * rec_spread ** 2)
+
+        #             weight = np.exp(-dist_sq)
+        #             bias = weight * strength
+
+        #             recommended_agent.q_table[key] = np.zeros(2)
+        #             recommended_agent.action_counts[key] = np.zeros(2)
+
+        #             # Apply bias to accept (action=0)
+        #             accept_prior = bias + np.random.normal(0, noise_std)
+        #             recommended_agent.q_table[key][0] = np.clip(accept_prior, lower_bound, upper_bound)
+        #             # Leave reject (action=1) neutral
+        #             recommended_agent.q_table[key][1] = np.random.normal(0, 1.0)
+
         if landscape_type == 'default':
             # --- 2D Gaussian bump around (local_ctx, local_rec) ---
             context_spread = environment.n_contexts / 10
             rec_spread = environment.n_recommendations / 10
 
-            for context in range(environment.n_contexts):
-                for recommendation in range(environment.n_recommendations):
+            ctx_midpoint = environment.n_contexts // 2
+            rec_midpoint = environment.n_recommendations // 2
+
+            for context in range(ctx_midpoint):  # Bottom half only
+                for recommendation in range(rec_midpoint):  # Left half only
                     key = (context, recommendation)
 
                     # Gaussian distance from local max
@@ -161,35 +190,59 @@ def run_recommender_simulation(
                     weight = np.exp(-dist_sq)
                     bias = weight * strength
 
+                    # Initialize Q-values and action counts
                     recommended_agent.q_table[key] = np.zeros(2)
                     recommended_agent.action_counts[key] = np.zeros(2)
 
-                    # Apply bias to accept (action=0)
+                    # Biased prior for 'accept' (action=0), neutral/noisy for 'reject' (action=1)
                     accept_prior = bias + np.random.normal(0, noise_std)
                     recommended_agent.q_table[key][0] = np.clip(accept_prior, lower_bound, upper_bound)
-                    # Leave reject (action=1) neutral
                     recommended_agent.q_table[key][1] = np.random.normal(0, 1.0)
 
+
+        # elif landscape_type == 'rows':
+        #     # --- Gaussian bump along the local max row (recommendation = local_rec) ---
+        #     rec_spread = environment.n_recommendations / 10  # Standard deviation in recommendation space
+
+        #     for context in range(environment.n_contexts):
+        #         for recommendation in range(environment.n_recommendations):
+        #             key = (context, recommendation)
+        #             recommended_agent.q_table[key] = np.zeros(2)
+        #             recommended_agent.action_counts[key] = np.zeros(2)
+
+        #             # Gaussian distance in recommendation (row) axis only
+        #             dist_sq = ((recommendation - local_rec) ** 2) / (2 * rec_spread ** 2)
+        #             weight = np.exp(-dist_sq)
+        #             bias = weight * strength
+
+        #             # Apply biased prior for accept
+        #             accept_prior = bias + np.random.normal(0, noise_std)
+        #             recommended_agent.q_table[key][0] = np.clip(accept_prior, lower_bound, upper_bound)
+        #             # Leave reject neutral
+        #             recommended_agent.q_table[key][1] = np.random.normal(0, 1.0)
+
         elif landscape_type == 'rows':
-            # --- Gaussian bump along the local max row (recommendation = local_rec) ---
-            rec_spread = environment.n_recommendations / 10  # Standard deviation in recommendation space
+            rec_spread = environment.n_recommendations / 10  # Std deviation in recommendation space
+            midpoint = environment.n_recommendations // 2
 
             for context in range(environment.n_contexts):
-                for recommendation in range(environment.n_recommendations):
+                for recommendation in range(midpoint):  # Only initialize lower half
                     key = (context, recommendation)
-                    recommended_agent.q_table[key] = np.zeros(2)
-                    recommended_agent.action_counts[key] = np.zeros(2)
 
-                    # Gaussian distance in recommendation (row) axis only
+                    # Gaussian bump bias
                     dist_sq = ((recommendation - local_rec) ** 2) / (2 * rec_spread ** 2)
                     weight = np.exp(-dist_sq)
                     bias = weight * strength
 
-                    # Apply biased prior for accept
+                    # Initialize Q-values and action counts
+                    recommended_agent.q_table[key] = np.zeros(2)
+                    recommended_agent.action_counts[key] = np.zeros(2)
+
+                    # Biased prior for 'accept' (action=0), neutral/noisy for 'reject' (action=1)
                     accept_prior = bias + np.random.normal(0, noise_std)
                     recommended_agent.q_table[key][0] = np.clip(accept_prior, lower_bound, upper_bound)
-                    # Leave reject neutral
                     recommended_agent.q_table[key][1] = np.random.normal(0, 1.0)
+
 
 
         # Visualization
@@ -198,8 +251,6 @@ def run_recommender_simulation(
             recommendation_list=range(environment.n_recommendations),
             title="Recommended Agent's Initial Q Landscape"
         )
-
-    environment.visualize_landscape()
 
     for step in trange(n_steps, desc="Running Simulation"):
         context = environment.current_context
