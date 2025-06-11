@@ -93,7 +93,7 @@ class ExogenousRewardEnvironment:
             plt.scatter(self.current_context, current_y, color="lime", marker="x", s=100, label="Current Position")
 
         plt.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
-        plt.title("Discrete 2D State Space with Smooth Heights")
+        plt.title("Environmental Rewards Landscape")
         plt.xlabel("Contexts (X-axis)")
         plt.ylabel("Recommendations (Y-axis)")
         plt.legend()

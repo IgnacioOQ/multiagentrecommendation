@@ -49,42 +49,82 @@ class MoodSwings:
 class ReceptorModulator:
     def __init__(self, alpha=0.0001, beta=0.001, min_sensitivity=0.1, max_sensitivity=1.0):
         """
-        Models receptor downregulation via a decaying sensitivity factor.
+        Simulates receptor downregulation — a key biological process where the brain becomes
+        less sensitive to stimuli after repeated exposure (e.g., tolerance to dopamine-triggering rewards).
 
-        alpha: decay rate (downregulation with reward exposure)
-        beta: recovery rate (sensitivity rebound when not stimulated)
-        """ 
-        self.sensitivity = max_sensitivity
-        self.alpha = alpha
-        self.beta = beta
-        self.min_sensitivity = min_sensitivity
-        self.max_sensitivity = max_sensitivity
-        self.cumulative_reward = 0.0
-        self.modulation_history = []
+        Parameters:
+            alpha (float): 
+                Controls how fast sensitivity decays in response to reward (desensitization).
+                Higher alpha = faster downregulation.
+            beta (float): 
+                Controls how fast sensitivity recovers when reward is absent (resensitization).
+            min_sensitivity (float): 
+                Floor for how insensitive the system can become — prevents total shutdown.
+            max_sensitivity (float): 
+                Baseline sensitivity before downregulation (typically 1.0).
+        """
+        self.sensitivity = max_sensitivity       # Initial sensitivity starts fully responsive
+        self.alpha = alpha                       # Desensitization rate (reward-driven)
+        self.beta = beta                         # Recovery rate (homeostatic rebound)
+        self.min_sensitivity = min_sensitivity   # Lower limit on receptor responsiveness
+        self.max_sensitivity = max_sensitivity   # Upper limit (baseline setpoint)
+        self.cumulative_reward = 0.0             # (Optional/unused in this version)
+        self.modulation_history = []             # Log of each reward modulation for plotting or diagnostics
 
-    def modify_reward(self, reward, step=None,*_):
+    def modify_reward(self, reward, step=None, *_):
         """
-        Apply sensitivity to modulate the incoming reward.
+        Modulates the input reward using current sensitivity level.
+        
+        This simulates the effect of receptor downregulation: 
+        even if an external stimulus is strong, internal response weakens over time.
+
+        Parameters:
+            reward (float): Raw reward from the environment.
+            step (int, optional): Current timestep (used for logging).
+            *_: placeholder to allow compatibility with other modulators that accept more args.
+
+        Returns:
+            effective_reward (float): Scaled reward after applying internal sensitivity.
         """
-        effective_reward = self.sensitivity * reward
+        effective_reward = self.sensitivity * reward  # Perceived reward is scaled by internal sensitivity
+
+        # Store data for post-simulation analysis (e.g., plotting sensitivity decay over time)
         self.modulation_history.append({
             "step": step,
             "original": reward,
             "sensitivity": self.sensitivity,
             "effective": effective_reward
         })
+
         return effective_reward
 
-    def step(self, reward=None,*_):
+    def step(self, reward=None, *_):
         """
-        Update receptor sensitivity: decay with reward, recover otherwise.
+        Updates internal receptor sensitivity based on current reward exposure.
+
+        Biological interpretation:
+        - If the agent receives positive reward, it becomes less sensitive over time (desensitization).
+        - If the agent receives no reward, sensitivity recovers toward baseline (resensitization).
+
+        Parameters:
+            reward (float or None): Reward used to determine downregulation (optional).
+            *_: placeholder to accept and ignore extra arguments for compatibility.
+
+        Effects:
+            Updates self.sensitivity by increasing or decreasing it,
+            then clips the result to the allowed range [min_sensitivity, max_sensitivity].
         """
-        if reward is not None and reward > 0:
-            self.sensitivity -= self.alpha * reward
+        if reward is not None:
+            # Desensitize based on the intensity of stimulation, regardless of sign
+            self.sensitivity -= self.alpha * abs(reward)
         else:
+            # Recover toward baseline if no stimulation occurs
             self.sensitivity += self.beta * (self.max_sensitivity - self.sensitivity)
 
+        # Ensure sensitivity stays within bounds
         self.sensitivity = np.clip(self.sensitivity, self.min_sensitivity, self.max_sensitivity)
+
+
         
 class NoveltyModulator:
     def __init__(self, eta=1.0):
