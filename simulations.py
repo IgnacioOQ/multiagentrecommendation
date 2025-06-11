@@ -55,7 +55,7 @@ def run_recommender_simulation(
         exploration_decay=exploration_decay
     )
     recommended_agent = recommended_agent_class(exploration_rate=exploration_rate,exploration_decay=exploration_decay,strategy=strategy)
-    modulator_class = modulator_class()
+    modulator = modulator_class() if modulated else None
 
     recommender_rewards = []
     recommender_contexts = []
@@ -75,28 +75,6 @@ def run_recommender_simulation(
     total_user_reward = 0
 
     environment.visualize_landscape()
-    # if initialize_recommender:
-    #   n_actions = environment.n_recommendations
-    #   n_contexts = environment.n_contexts  # list or iterable of context values
-
-    #   recommender_agent.q_table = {}
-    #   recommender_agent.action_counts = {} # Initialize action_counts here
-
-    #   # Configuration
-    #   noise_std = 20.0          # Adjust this for more/less noisy priors
-    #   lower_bound = -50
-    #   upper_bound = 100
-
-    #   for context in range(n_contexts):
-    #       q_values = np.zeros(n_actions)
-    #       recommender_agent.action_counts[context] = np.zeros(n_actions) # Initialize action counts for this context
-    #       for recommendation in range(n_actions):
-    #           base_value = environment.state_space[recommendation, context]
-    #           noise = np.random.normal(loc=0.0, scale=noise_std)
-    #           noisy_value = base_value + noise
-    #           q_values[recommendation] = np.clip(noisy_value, lower_bound, upper_bound)
-    #       recommender_agent.q_table[context] = q_values
-    #   recommender_agent.visualize_q_landscape(range(n_contexts),title='Recommender Agent Initial Estimates')
 
     if initialize_recommender:
         n_actions = environment.n_recommendations
@@ -146,31 +124,6 @@ def run_recommender_simulation(
         lower_bound = -50
         upper_bound = 100
 
-        # if landscape_type == 'default':
-        #     # --- 2D Gaussian bump around (local_ctx, local_rec) ---
-        #     context_spread = environment.n_contexts / 10
-        #     rec_spread = environment.n_recommendations / 10
-
-        #     for context in range(environment.n_contexts):
-        #         for recommendation in range(environment.n_recommendations):
-        #             key = (context, recommendation)
-
-        #             # Gaussian distance from local max
-        #             dist_sq = ((context - local_ctx) ** 2) / (2 * context_spread ** 2) + \
-        #                     ((recommendation - local_rec) ** 2) / (2 * rec_spread ** 2)
-
-        #             weight = np.exp(-dist_sq)
-        #             bias = weight * strength
-
-        #             recommended_agent.q_table[key] = np.zeros(2)
-        #             recommended_agent.action_counts[key] = np.zeros(2)
-
-        #             # Apply bias to accept (action=0)
-        #             accept_prior = bias + np.random.normal(0, noise_std)
-        #             recommended_agent.q_table[key][0] = np.clip(accept_prior, lower_bound, upper_bound)
-        #             # Leave reject (action=1) neutral
-        #             recommended_agent.q_table[key][1] = np.random.normal(0, 1.0)
-
         if landscape_type == 'default':
             # --- 2D Gaussian bump around (local_ctx, local_rec) ---
             context_spread = environment.n_contexts / 10
@@ -199,28 +152,6 @@ def run_recommender_simulation(
                     recommended_agent.q_table[key][0] = np.clip(accept_prior, lower_bound, upper_bound)
                     recommended_agent.q_table[key][1] = np.random.normal(0, 1.0)
 
-
-        # elif landscape_type == 'rows':
-        #     # --- Gaussian bump along the local max row (recommendation = local_rec) ---
-        #     rec_spread = environment.n_recommendations / 10  # Standard deviation in recommendation space
-
-        #     for context in range(environment.n_contexts):
-        #         for recommendation in range(environment.n_recommendations):
-        #             key = (context, recommendation)
-        #             recommended_agent.q_table[key] = np.zeros(2)
-        #             recommended_agent.action_counts[key] = np.zeros(2)
-
-        #             # Gaussian distance in recommendation (row) axis only
-        #             dist_sq = ((recommendation - local_rec) ** 2) / (2 * rec_spread ** 2)
-        #             weight = np.exp(-dist_sq)
-        #             bias = weight * strength
-
-        #             # Apply biased prior for accept
-        #             accept_prior = bias + np.random.normal(0, noise_std)
-        #             recommended_agent.q_table[key][0] = np.clip(accept_prior, lower_bound, upper_bound)
-        #             # Leave reject neutral
-        #             recommended_agent.q_table[key][1] = np.random.normal(0, 1.0)
-
         elif landscape_type == 'rows':
             rec_spread = environment.n_recommendations / 10  # Std deviation in recommendation space
             midpoint = environment.n_recommendations // 2
@@ -243,8 +174,6 @@ def run_recommender_simulation(
                     recommended_agent.q_table[key][0] = np.clip(accept_prior, lower_bound, upper_bound)
                     recommended_agent.q_table[key][1] = np.random.normal(0, 1.0)
 
-
-
         # Visualization
         recommended_agent.visualize_accept_q_landscape(
             context_list=range(environment.n_contexts),
@@ -258,26 +187,37 @@ def run_recommender_simulation(
         accept = recommended_agent.act(context, recommendation)
         accept_history.append((step, context, recommendation, accept))
 
+        # if accept:
+        #     agent_reward = environment.state_space[recommendation, context]
+        #     if modulated:
+        #         modulated_reward = modulator_class.modify_reward(agent_reward)
+        #     recommender_reward = 1
+        # else:
+        #     agent_reward = 0
+        #     if modulated:
+        #         modulated_reward = modulator_class.modify_reward(agent_reward)
+        #     recommender_reward = -1
+
         if accept:
             agent_reward = environment.state_space[recommendation, context]
             if modulated:
-                modulated_reward = modulator_class.modify_reward(agent_reward)
+                # modulated_reward = modulator.modify_reward(agent_reward, step)
+                modulated_reward = modulator.modify_reward(agent_reward, step,context, recommendation)
+                modulator.step(agent_reward)
             recommender_reward = 1
         else:
             agent_reward = 0
             if modulated:
-                modulated_reward = modulator_class.modify_reward(agent_reward)
+                # modulated_reward = modulator.modify_reward(agent_reward, step=step)
+                modulated_reward = modulator.modify_reward(agent_reward, step,context, recommendation)
+                modulator.step(agent_reward)
             recommender_reward = -1
-        
-        if modulated:
-            modulator_class.step()
-            recommended_agent.update_reward(context, recommendation, accept, modulated_reward)
-            original_modulated_differences.append(agent_reward - modulated_reward)
-            recommended_rewards.append(modulated_reward)
-        else:
-            recommended_agent.update_reward(context, recommendation, accept, agent_reward)
-            original_modulated_differences.append(agent_reward)
-            recommended_rewards.append(agent_reward)
+
+        # Update agents
+        reward_to_use = modulated_reward if modulated else agent_reward
+        recommended_agent.update_reward(context, recommendation, accept, reward_to_use)
+        recommended_rewards.append(reward_to_use)
+        original_modulated_differences.append(agent_reward - reward_to_use)
             
         recommender_agent.update_reward(context, recommendation, recommender_reward)
         recommender_rewards.append(recommender_reward)
@@ -333,6 +273,7 @@ def run_recommender_simulation(
         "context_history": recommender_contexts,
         "average_recommender_map": average_recommender_map,
         "accept_history": accept_history,
-        "original_modulated_differences": original_modulated_differences
+        "original_modulated_differences": original_modulated_differences,
+        "modulator": modulator  # <--- Add this
     }
 

@@ -15,7 +15,7 @@ class MoodSwings:
         # Start with symmetric probabilities
         self.move_probs = np.ones(len(self.moves)) / len(self.moves)
 
-    def step(self):
+    def step(self,*_):
         self.time += 1
 
         # --- Non-stationarity: Slowly bias move_probs over time ---
@@ -43,94 +43,111 @@ class MoodSwings:
         self.mood_history = [self.mood]
         self.time = 0
 
-    def modify_reward(self, reward):
+    def modify_reward(self, reward,*_):
         return reward + self.mood
     
-    
-# class HomeostaticModulator(BaseQLearningAgent):
-#     def __init__(self, exploration_rate=1.0, exploration_decay=0.999,
-#                  min_exploration_rate=0.001, strategy='egreedy', setpoint=0):
-#         self.moves = np.arange(-20, 20)
-#         self.setpoint = setpoint
-#         self.modulation_history = []  # stores (step, exo_reward, modulation, modulated_reward)
-#         super().__init__(
-#             n_actions=len(self.moves),
-#             exploration_rate=exploration_rate,
-#             exploration_decay=exploration_decay,
-#             min_exploration_rate=min_exploration_rate,
-#             strategy=strategy
-#         )
+class ReceptorModulator:
+    def __init__(self, alpha=0.0001, beta=0.001, min_sensitivity=0.1, max_sensitivity=1.0):
+        """
+        Models receptor downregulation via a decaying sensitivity factor.
 
-#     def act(self, exogenous_reward):
-#         """
-#         Selects a modulation amount from self.moves based on current Q-values
-#         for the rounded exogenous reward.
-#         """
-#         key = round(exogenous_reward, 2)
-#         action_idx = self.choose_action(key)
-#         return self.moves[action_idx]
+        alpha: decay rate (downregulation with reward exposure)
+        beta: recovery rate (sensitivity rebound when not stimulated)
+        """ 
+        self.sensitivity = max_sensitivity
+        self.alpha = alpha
+        self.beta = beta
+        self.min_sensitivity = min_sensitivity
+        self.max_sensitivity = max_sensitivity
+        self.cumulative_reward = 0.0
+        self.modulation_history = []
 
-#     def modify_reward(self, exogenous_reward, step=None):
-#         """
-#         Modulates the reward and logs history.
-#         """
-#         modulation = self.act(exogenous_reward)
-#         modulated_reward = self.update_modulation(exogenous_reward, modulation)
+    def modify_reward(self, reward, step=None,*_):
+        """
+        Apply sensitivity to modulate the incoming reward.
+        """
+        effective_reward = self.sensitivity * reward
+        self.modulation_history.append({
+            "step": step,
+            "original": reward,
+            "sensitivity": self.sensitivity,
+            "effective": effective_reward
+        })
+        return effective_reward
 
-#         self.modulation_history.append({
-#             "step": step,
-#             "exogenous_reward": exogenous_reward,
-#             "modulation": modulation,
-#             "modulated_reward": modulated_reward,
-#             "setpoint": self.setpoint
-#         })
+    def step(self, reward=None,*_):
+        """
+        Update receptor sensitivity: decay with reward, recover otherwise.
+        """
+        if reward is not None and reward > 0:
+            self.sensitivity -= self.alpha * reward
+        else:
+            self.sensitivity += self.beta * (self.max_sensitivity - self.sensitivity)
 
-#         return modulated_reward
+        self.sensitivity = np.clip(self.sensitivity, self.min_sensitivity, self.max_sensitivity)
+        
+class NoveltyModulator:
+    def __init__(self, eta=1.0):
+        """
+        A reward modulator that adds a novelty bonus to raw environmental rewards.
 
-#     def update_modulation(self, exogenous_reward, modulation):
-#         key = round(exogenous_reward, 2)
-#         action_idx = np.where(self.moves == modulation)[0][0]
-#         modulated_reward = exogenous_reward - modulation
-#         reward = -abs(modulated_reward - self.setpoint)
-#         self.update(key, action_idx, reward)
-#         return modulated_reward
+        Biological motivation:
+            Dopamine systems in the brain show elevated firing in response to novel or infrequent stimuli.
+            This modulator captures that behavior by rewarding novelty via inverse visitation frequency.
 
-#     def plot_modulation_trajectory(self, max_points=1000):
-#         """
-#         Plot the evolution of exogenous vs. modulated rewards and modulation magnitude.
-#         """
-#         if not self.modulation_history:
-#             print("No modulation history to plot.")
-#             return
+        Parameters:
+            eta (float): Controls the strength of the novelty bonus.
+                        Higher values place more weight on novelty; eta=0 disables novelty entirely.
+        """
+        self.visit_counts = defaultdict(int)  # Tracks how many times each (context, recommendation) pair was seen
+        self.eta = eta                        # Novelty sensitivity parameter
+        self.modulation_history = []          # Records all modulation steps for plotting or debugging
 
-#         df = pd.DataFrame(self.modulation_history)
-#         if max_points and len(df) > max_points:
-#             df = df.iloc[-max_points:]  # keep recent
+    def modify_reward(self, raw_reward, step, context, recommendation):
+        """
+        Computes a novelty-adjusted reward by adding a bonus for less-frequent (context, recommendation) pairs.
 
-#         plt.figure(figsize=(12, 6))
+        Parameters:
+            context (int): The current context of the environment (e.g., user state).
+            recommendation (int): The item being recommended.
+            raw_reward (float): The reward from the environment (e.g., utility, engagement).
+            step (int, optional): Current timestep (for logging).
 
-#         # 1. Exogenous vs. Modulated Reward
-#         plt.subplot(2, 1, 1)
-#         plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward", color="blue")
-#         plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward", color="green")
-#         plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
-#         plt.title("Exogenous vs. Modulated Reward")
-#         plt.ylabel("Reward")
-#         plt.legend()
-#         plt.grid(True)
+        Returns:
+            modulated_reward (float): Final reward used for learning, adjusted for novelty.
+        """
+        key = (context, recommendation)
 
-#         # 2. Modulation
-#         plt.subplot(2, 1, 2)
-#         plt.plot(df["step"], df["modulation"], label="Modulation", color="purple")
-#         plt.title("Modulation Over Time")
-#         plt.xlabel("Step")
-#         plt.ylabel("Modulation Value")
-#         plt.grid(True)
-#         plt.tight_layout()
-#         plt.show()
+        # Increment visit count for this (context, recommendation) pair
+        self.visit_counts[key] += 1
 
-#     def step(self):
-#         pass  # Optional hook for time-dependent dynamics
+        # Compute novelty: inverse square root of visit count (decays over time)
+        # Novelty = 1 on first visit, ~0.7 after 2 visits, ~0.3 after 10 visits, etc.
+        novelty = 1.0 / np.sqrt(self.visit_counts[key])
+
+        # Add novelty bonus to original reward
+        modulated_reward = raw_reward + self.eta * novelty
+
+        # Log this step for visualization or analysis
+        self.modulation_history.append({
+            "step": step,
+            "context": context,
+            "recommendation": recommendation,
+            "novelty": novelty,
+            "original": raw_reward,
+            "modulated": modulated_reward
+        })
+
+        return modulated_reward
+
+    def step(self, *_):
+        """
+        Optional step method for interface compatibility with other modulators (e.g. receptor modulator).
+        Does nothing here because novelty is state-based, not time-dependent.
+        """
+        pass
+
+
 
 class HomeostaticModulator(BaseQLearningAgent):
     def __init__(self, exploration_rate=1.0, exploration_decay=0.999,
@@ -153,7 +170,7 @@ class HomeostaticModulator(BaseQLearningAgent):
         action_idx = self.choose_action(key)
         return self.moves[action_idx]
 
-    def modify_reward(self, exogenous_reward, step=None):
+    def modify_reward(self, exogenous_reward, step=None,*_):
         """
         Delays the application of modulation by `lag` steps.
         Learns now, but modulates later.
@@ -220,7 +237,7 @@ class HomeostaticModulator(BaseQLearningAgent):
         plt.tight_layout()
         plt.show()
 
-    def step(self):
+    def step(self,*_):
         pass
 
 # ============================================

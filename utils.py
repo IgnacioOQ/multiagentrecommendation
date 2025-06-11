@@ -69,3 +69,20 @@ def plot_reward_statistics(sim_results, rolling_window=1000):
 
         plt.tight_layout()
         plt.show()
+
+def plot_sensitivity(modulator,variable="sensitivity"):
+    if not modulator.modulation_history:
+        print("No modulation history recorded.")
+        return
+
+    history = pd.DataFrame(modulator.modulation_history)
+    plt.figure(figsize=(10, 4))
+    plt.plot(history["step"], history[variable], label=variable)
+    plt.title(f"Receptor {variable} Over Time")
+    plt.xlabel("Step")
+    plt.ylabel(variable)
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
