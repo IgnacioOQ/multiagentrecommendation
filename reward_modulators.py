@@ -70,6 +70,7 @@ class ReceptorModulator:
         self.max_sensitivity = max_sensitivity   # Upper limit (baseline setpoint)
         self.cumulative_reward = 0.0             # (Optional/unused in this version)
         self.modulation_history = []             # Log of each reward modulation for plotting or diagnostics
+        self.setpoint_reward = 0  # Target reward level for homeostasis
 
     def modify_reward(self, reward, step=None, *_):
         """
@@ -114,12 +115,14 @@ class ReceptorModulator:
             Updates self.sensitivity by increasing or decreasing it,
             then clips the result to the allowed range [min_sensitivity, max_sensitivity].
         """
-        if reward is not None:
-            # Desensitize based on the intensity of stimulation, regardless of sign
-            self.sensitivity -= self.alpha * abs(reward)
-        else:
-            # Recover toward baseline if no stimulation occurs
+        if abs(reward - self.setpoint_reward) < 10:
+            # Close enough → recover
             self.sensitivity += self.beta * (self.max_sensitivity - self.sensitivity)
+        else:
+            # Desensitize
+            # self.sensitivity -= self.alpha * abs(reward - self.setpoint_reward)
+            self.sensitivity -= self.alpha * abs(abs(reward) - self.setpoint_reward)
+
 
         # Ensure sensitivity stays within bounds
         self.sensitivity = np.clip(self.sensitivity, self.min_sensitivity, self.max_sensitivity)
@@ -280,11 +283,6 @@ class HomeostaticModulator(BaseQLearningAgent):
     def step(self,*_):
         pass
 
-# ============================================
-# PID Controller
-# ============================================
-
-class PIDController:
     """
     Classic PID controller.
 
