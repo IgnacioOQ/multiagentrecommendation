@@ -62,7 +62,7 @@ class ExogenousRewardEnvironment:
         else:
             return None
 
-    def visualize_landscape(self, current_y=None,mark_context=False):
+    def visualize_landscape(self, current_y=None, mark_context=False):
         """
         Visualize the 2D state landscape and mark global/local maxima,
         as well as the current context with an optional current_y.
