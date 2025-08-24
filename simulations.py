@@ -1,6 +1,6 @@
 from imports import *
 from reward_modulators import *
-from src.human_learning_ME.agent import *
+from agents import *
 from environment import ExogenousRewardEnvironment
 
 def run_recommender_simulation(
