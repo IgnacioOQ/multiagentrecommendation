@@ -1,0 +1,13 @@
+numpy==2.3.2
+pandas==2.3.2
+matplotlib==3.10.5
+jupyter-client==8.6.3
+jupyter_core==5.8.1
+ipykernel==6.30.1
+ipython==9.4.0
+tqdm==4.67.1
+scipy==1.16.1
+nbconvert==7.16.6
+papermill==2.6.0
+statsmodels==0.14.5
+PyYAML==6.0.2
