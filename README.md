@@ -31,13 +31,10 @@ This will run the simulations defined in the notebook and generate plots to visu
 
 ## Dependencies
 
-The main dependencies for this project are:
+The main dependencies for this project are listed in the `requirements.txt` file.
 
--   `numpy`
--   `pandas`
--   `matplotlib`
--   `jupyter`
--   `tqdm`
--   `scipy`
+To install the dependencies, run the following command:
 
-A `requirements.txt` file is not available, so you may need to install these packages manually using `pip`.
+```bash
+pip install -r requirements.txt
+```
