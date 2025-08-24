@@ -1,15 +1,22 @@
 from imports import *
 
+
 class BaseQLearningAgent:
-    def __init__(self, n_actions, exploration_rate=1.0, exploration_decay=0.999,
-                 min_exploration_rate=0.001, strategy='egreedy'):
+    def __init__(
+        self,
+        n_actions,
+        exploration_rate=1.0,
+        exploration_decay=0.999,
+        min_exploration_rate=0.001,
+        strategy="egreedy",
+    ):
         self.n_actions = n_actions
         self.exploration_rate = exploration_rate
         self.exploration_decay = exploration_decay
         self.min_exploration_rate = min_exploration_rate
         self.strategy = strategy
-        self.q_table = {}         # key: context or (context, recommendation)
-        self.action_counts = {}   # same key
+        self.q_table = {}  # key: context or (context, recommendation)
+        self.action_counts = {}  # same key
         self.time = 0
 
     def _ensure_key(self, key):
@@ -21,11 +28,11 @@ class BaseQLearningAgent:
         self._ensure_key(key)
         self.time += 1
 
-        if self.strategy == 'egreedy':
+        if self.strategy == "egreedy":
             return self._egreedy_choice(key)
-        elif self.strategy == 'ucb':
+        elif self.strategy == "ucb":
             return self._ucb_choice(key)
-        elif self.strategy == 'softmax':
+        elif self.strategy == "softmax":
             return self._softmax_choice(key)
         else:
             raise ValueError(f"Unknown strategy: {self.strategy}")
@@ -37,8 +44,10 @@ class BaseQLearningAgent:
 
     def _ucb_choice(self, key):
         counts = self.action_counts[key] + 1e-5
-        return np.argmax(self.q_table[key] + self.exploration_rate *
-                         np.sqrt(np.log(self.time + 1) / counts))
+        return np.argmax(
+            self.q_table[key]
+            + self.exploration_rate * np.sqrt(np.log(self.time + 1) / counts)
+        )
 
     def _softmax_choice(self, key, tau=1.0):
         scaled = self.q_table[key] / tau
@@ -53,15 +62,16 @@ class BaseQLearningAgent:
         if n == 0:
             self.q_table[key][action] = reward
         else:
-            self.q_table[key][action] = q + (reward - q) / n
+            self.q_table[key][action] = q + (reward - q) / (n + 1)
 
         self.action_counts[key][action] += 1
 
-        if self.strategy == 'egreedy':
+        if self.strategy == "egreedy":
             self.exploration_rate = max(
                 self.min_exploration_rate,
-                self.exploration_rate * self.exploration_decay
+                self.exploration_rate * self.exploration_decay,
             )
+
 
 class RecommenderAgent(BaseQLearningAgent):
     def __init__(self, num_recommendations, **kwargs):
@@ -74,16 +84,25 @@ class RecommenderAgent(BaseQLearningAgent):
         # Treat context as the key
         self.update(context, recommendation, reward)
 
-    def visualize_q_landscape(self, context_list, title="Recommender Agent's Q-value Landscape"):
+    def visualize_q_landscape(
+        self, context_list, title="Recommender Agent's Q-value Landscape"
+    ):
         n_contexts = len(context_list)
         q_matrix = np.zeros((self.n_actions, n_contexts))
 
         for col_idx, context in enumerate(context_list):
-            q_matrix[:, col_idx] = self.q_table.get(context, np.full(self.n_actions, np.nan))
+            q_matrix[:, col_idx] = self.q_table.get(
+                context, np.full(self.n_actions, np.nan)
+            )
 
         plt.figure(figsize=(6, 4))
-        im = plt.imshow(q_matrix, cmap="plasma", origin="lower", aspect="auto",
-                        extent=[0, n_contexts, 0, self.n_actions])
+        im = plt.imshow(
+            q_matrix,
+            cmap="plasma",
+            origin="lower",
+            aspect="auto",
+            extent=[0, n_contexts, 0, self.n_actions],
+        )
         plt.colorbar(im, label="Estimated Q-value")
         plt.title(title)
         plt.xlabel("Contexts (X-axis)")
@@ -106,7 +125,12 @@ class RecommendedAgent(BaseQLearningAgent):
         action = 0 if accepted else 1
         self.update(key, action, reward)
 
-    def visualize_accept_q_landscape(self, context_list, recommendation_list, title="User Learned Q-values for Accept"):
+    def visualize_accept_q_landscape(
+        self,
+        context_list,
+        recommendation_list,
+        title="User Learned Q-values for Accept",
+    ):
         n_contexts = len(context_list)
         n_recommendations = len(recommendation_list)
         q_matrix = np.full((n_recommendations, n_contexts), np.nan)
@@ -118,8 +142,13 @@ class RecommendedAgent(BaseQLearningAgent):
                     q_matrix[i, j] = self.q_table[key][0]
 
         plt.figure(figsize=(6, 4))
-        im = plt.imshow(q_matrix, cmap="viridis", origin="lower", aspect="auto",
-                        extent=[0, n_contexts, 0, n_recommendations])
+        im = plt.imshow(
+            q_matrix,
+            cmap="viridis",
+            origin="lower",
+            aspect="auto",
+            extent=[0, n_contexts, 0, n_recommendations],
+        )
         plt.colorbar(im, label="Q-value for Accept (Action=0)")
         plt.title(title)
         plt.xlabel("Contexts (X-axis)")
