@@ -47,36 +47,37 @@ class MoodSwings:
         return reward + self.mood
     
 class ReceptorModulator:
-    def __init__(self, alpha=0.0001, beta=0.001, min_sensitivity=0.1, max_sensitivity=1.0):
+    def __init__(self, alpha=0.0001, beta=0.001, min_sensitivity=0.1, max_sensitivity=1.0, desensitization_threshold=10):
         """
         Simulates receptor downregulation — a key biological process where the brain becomes
         less sensitive to stimuli after repeated exposure (e.g., tolerance to dopamine-triggering rewards).
 
         Parameters:
-            alpha (float): 
+            alpha (float):
                 Controls how fast sensitivity decays in response to reward (desensitization).
                 Higher alpha = faster downregulation.
-            beta (float): 
+            beta (float):
                 Controls how fast sensitivity recovers when reward is absent (resensitization).
-            min_sensitivity (float): 
+            min_sensitivity (float):
                 Floor for how insensitive the system can become — prevents total shutdown.
-            max_sensitivity (float): 
+            max_sensitivity (float):
                 Baseline sensitivity before downregulation (typically 1.0).
+            desensitization_threshold (float):
+                The reward threshold above which the system desensitizes, and below which it recovers.
         """
         self.sensitivity = max_sensitivity       # Initial sensitivity starts fully responsive
         self.alpha = alpha                       # Desensitization rate (reward-driven)
         self.beta = beta                         # Recovery rate (homeostatic rebound)
         self.min_sensitivity = min_sensitivity   # Lower limit on receptor responsiveness
         self.max_sensitivity = max_sensitivity   # Upper limit (baseline setpoint)
-        self.cumulative_reward = 0.0             # (Optional/unused in this version)
+        self.desensitization_threshold = desensitization_threshold
         self.modulation_history = []             # Log of each reward modulation for plotting or diagnostics
-        self.setpoint_reward = 0  # Target reward level for homeostasis
 
     def modify_reward(self, reward, step=None, *_):
         """
         Modulates the input reward using current sensitivity level.
-        
-        This simulates the effect of receptor downregulation: 
+
+        This simulates the effect of receptor downregulation:
         even if an external stimulus is strong, internal response weakens over time.
 
         Parameters:
@@ -104,8 +105,8 @@ class ReceptorModulator:
         Updates internal receptor sensitivity based on current reward exposure.
 
         Biological interpretation:
-        - If the agent receives positive reward, it becomes less sensitive over time (desensitization).
-        - If the agent receives no reward, sensitivity recovers toward baseline (resensitization).
+        - If the agent receives a reward above the threshold, it becomes less sensitive (desensitization).
+        - If the agent receives a reward below the threshold, sensitivity recovers toward baseline (resensitization).
 
         Parameters:
             reward (float or None): Reward used to determine downregulation (optional).
@@ -115,14 +116,12 @@ class ReceptorModulator:
             Updates self.sensitivity by increasing or decreasing it,
             then clips the result to the allowed range [min_sensitivity, max_sensitivity].
         """
-        if abs(reward - self.setpoint_reward) < 10:
-            # Close enough → recover
-            self.sensitivity += self.beta * (self.max_sensitivity - self.sensitivity)
+        if abs(reward) > self.desensitization_threshold:
+            # High reward -> Desensitize
+            self.sensitivity -= self.alpha * abs(reward)
         else:
-            # Desensitize
-            # self.sensitivity -= self.alpha * abs(reward - self.setpoint_reward)
-            self.sensitivity -= self.alpha * abs(abs(reward) - self.setpoint_reward)
-
+            # Low or no reward -> Recover
+            self.sensitivity += self.beta * (self.max_sensitivity - self.sensitivity)
 
         # Ensure sensitivity stays within bounds
         self.sensitivity = np.clip(self.sensitivity, self.min_sensitivity, self.max_sensitivity)
