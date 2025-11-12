@@ -192,20 +192,13 @@ class NoveltyModulator:
 
 
 class HomeostaticModulator(BaseQLearningAgent):
-    def __init__(self, exploration_rate=1.0, exploration_decay=0.999,
-                 min_exploration_rate=0.001, strategy='egreedy', setpoint=0, lag=0):
+    def __init__(self, setpoint=0, lag=0, **kwargs):
         self.moves = np.arange(-20, 20)
         self.setpoint = setpoint
         self.modulation_history = []
         self.lag = lag
         self.pending_modulations = deque(maxlen=lag + 1)  # FIFO queue
-        super().__init__(
-            n_actions=len(self.moves),
-            exploration_rate=exploration_rate,
-            exploration_decay=exploration_decay,
-            min_exploration_rate=min_exploration_rate,
-            strategy=strategy
-        )
+        super().__init__(n_actions=len(self.moves), **kwargs)
 
     def act(self, exogenous_reward):
         key = round(exogenous_reward, 2)
@@ -282,6 +275,8 @@ class HomeostaticModulator(BaseQLearningAgent):
     def step(self,*_):
         pass
 
+
+class PIDController:
     """
     Classic PID controller.
 
