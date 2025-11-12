@@ -1,5 +1,6 @@
 from imports import *
 from agents import BaseQLearningAgent
+from tqdm import trange
 
 class MoodSwings:
     def __init__(self, n_moods=50):
@@ -193,7 +194,7 @@ class NoveltyModulator:
 
 class HomeostaticModulator(BaseQLearningAgent):
     def __init__(self, setpoint=0, lag=0, **kwargs):
-        self.moves = np.arange(-20, 20)
+        self.moves = np.arange(-50, 50)
         self.setpoint = setpoint
         self.modulation_history = []
         self.lag = lag
@@ -351,7 +352,7 @@ class PIDController:
         save_episodes = [0, episodes // 4, episodes // 2, (3 * episodes) // 4, episodes - 1]
         history = []
 
-        for episode in tqdm(range(episodes)):
+        for episode in trange(episodes):
             level = np.random.uniform(-10, 10)
             self.reset()
             total_reward = 0
