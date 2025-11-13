@@ -682,13 +682,13 @@ class TD_DHR:
         plt.grid(True)
         plt.legend()
 
-        plt.subplot(3, 1, 3) # New plot for Epsilon
-        if 'epsilon' in df.columns:
-            plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
-        plt.ylabel("Exploration Rate")
-        plt.xlabel("Step")
-        plt.grid(True)
-        plt.legend()
+        # plt.subplot(3, 1, 3) # New plot for Epsilon
+        # if 'epsilon' in df.columns:
+        #     plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
+        # plt.ylabel("Exploration Rate")
+        # plt.xlabel("Step")
+        # plt.grid(True)
+        # plt.legend()
 
         plt.tight_layout()
         plt.show()
@@ -881,7 +881,7 @@ class TD_DHR_D(TD_DHR):
     breaches a top or bottom threshold.
     """
     def __init__(self, setpoint, lag=0, history_length=5,
-                 top_threshold=50, bottom_threshold=-50, adjustment_factor=0.01):
+                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.05):
         
         # Call parent __init__ with the initial setpoint
         super().__init__(setpoint=setpoint, lag=lag, history_length=history_length)
@@ -996,13 +996,13 @@ class TD_DHR_D(TD_DHR):
         plt.grid(True)
         plt.legend()
 
-        plt.subplot(3, 1, 3)
-        if 'epsilon' in df.columns:
-            plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
-        plt.ylabel("Exploration Rate")
-        plt.xlabel("Step")
-        plt.grid(True)
-        plt.legend()
+        # plt.subplot(3, 1, 3)
+        # if 'epsilon' in df.columns:
+        #     plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
+        # plt.ylabel("Exploration Rate")
+        # plt.xlabel("Step")
+        # plt.grid(True)
+        # plt.legend()
 
         plt.tight_layout()
         plt.show()
@@ -1015,7 +1015,7 @@ class DQN_DHR_D(DQN_DHR):
     def __init__(self, setpoint, lag=0, history_length=5, 
                  gamma=0.9, batch_size=128, replay_memory=10000, 
                  target_update=10, lr=1e-3,
-                 top_threshold=50, bottom_threshold=-50, adjustment_factor=0.01):
+                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.05):
         
         # Call parent __init__
         super().__init__(setpoint=setpoint, lag=lag, history_length=history_length,
@@ -1142,13 +1142,13 @@ class DQN_DHR_D(DQN_DHR):
         plt.grid(True)
         plt.legend()
 
-        plt.subplot(3, 1, 3)
-        if 'epsilon' in df.columns:
-            plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
-        plt.ylabel("Exploration Rate")
-        plt.xlabel("Step")
-        plt.grid(True)
-        plt.legend()
+        # plt.subplot(3, 1, 3)
+        # if 'epsilon' in df.columns:
+        #     plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
+        # plt.ylabel("Exploration Rate")
+        # plt.xlabel("Step")
+        # plt.grid(True)
+        # plt.legend()
 
         plt.tight_layout()
         plt.show()
