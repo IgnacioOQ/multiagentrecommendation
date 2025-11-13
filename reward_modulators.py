@@ -1,6 +1,10 @@
 from imports import *
 from agents import BaseQLearningAgent
 from tqdm import trange
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
 
 class MoodSwings:
     def __init__(self, n_moods=50):
@@ -390,27 +394,13 @@ class PIDController:
         plt.grid(True)
         plt.show()
 
-    def plot_external_forces(self):
-        """
-        Plot external forces applied during key episodes.
-        """
-        plt.figure(figsize=(12, 5))
-        for ep_idx, _, forces in self.level_trajectories:
-            plt.plot(forces, label=f'Episode {ep_idx}')
-        plt.xlabel('Step')
-        plt.ylabel('External Force')
-        plt.title('External Forces - PID Controller')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-
 # --- "Time Difference" Modulator with Memory (Unchanged) ---
 class TD_HomeostaticModulator(BaseQLearningAgent):
     """
     Implements a homeostatic controller with "episodic memory" using a Q-table.
     Its state is a *history* of the last `history_length` exogenous rewards.
     """
-    
+
     def __init__(self, setpoint=0, lag=0, history_length=3, **kwargs):
         self.moves = np.arange(-50, 50)
         self.setpoint = setpoint
@@ -419,10 +409,10 @@ class TD_HomeostaticModulator(BaseQLearningAgent):
         self.history_length = history_length
         self.pending_modulations = deque(maxlen=lag + 1)
         self.state_history = deque(maxlen=self.history_length)
-        
+
         for _ in range(self.history_length):
             self.state_history.append(self.setpoint)
-        
+
         super().__init__(n_actions=len(self.moves), **kwargs)
 
     def _get_state_key(self):
@@ -545,7 +535,7 @@ class QNetwork(nn.Module):
     def forward(self, state):
         if self.network_type == 'gru':
             # Reshape state from (batch_size, seq_len) to (batch_size, seq_len, 1)
-            state_gru = state.unsqueeze(-1) 
+            state_gru = state.unsqueeze(-1)
             gru_out, hidden = self.gru(state_gru)
             # We use the final hidden state
             x = F.relu(self.fc1(hidden.squeeze(0)))
@@ -560,7 +550,7 @@ class QNetwork(nn.Module):
 class TD_DHR:
     """
     Implements a Deep Q-Network (DQN) homeostatic controller.
-    
+
     This agent uses a neural network (MLP or GRU) to generalize
     from a history of states, overcoming the "curse of dimensionality"
     of the tabular TD_HomeostaticModulator.
@@ -570,7 +560,7 @@ class TD_DHR:
                  replay_buffer_size=10000, batch_size=64, gamma=0.99,
                  tau=1e-3, epsilon_start=1.0, epsilon_decay=0.999,
                  epsilon_min=0.01):
-        
+
         self.moves = np.arange(-50, 50)
         self.n_actions = len(self.moves)
         self.setpoint = setpoint
@@ -604,7 +594,7 @@ class TD_DHR:
         self.state_history = deque(maxlen=self.history_length)
         for _ in range(self.history_length):
             self.state_history.append(self.setpoint)
-        
+
         self.modulation_history = []
         self.step_count = 0
 
@@ -615,7 +605,7 @@ class TD_DHR:
     def choose_action(self, state_tensor):
         """Chooses an action using an epsilon-greedy policy."""
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
-        
+
         if random.random() < self.epsilon:
             action_idx = random.randint(0, self.n_actions - 1)
         else:
@@ -624,7 +614,7 @@ class TD_DHR:
                 state_tensor = state_tensor.unsqueeze(0)
                 q_values = self.policy_net(state_tensor)
                 action_idx = q_values.argmax().item()
-        
+
         return action_idx
 
     def _learn(self):
@@ -634,7 +624,7 @@ class TD_DHR:
 
         # Sample a batch
         states, actions, rewards, next_states = self.replay_buffer.sample(self.batch_size)
-        
+
         # Move batch to the correct device
         states = states.to(self.device)
         actions = actions.to(self.device)
@@ -672,7 +662,7 @@ class TD_DHR:
     def modify_reward(self, exogenous_reward, step=None, *_):
         """Main control loop for the DQN agent."""
         self.step_count = step if step is not None else self.step_count + 1
-        
+
         # --- 0.5: Update State ---
         # Get state *before* adding new reward
         old_state_tensor = self._get_state_tensor(self.state_history)
@@ -683,7 +673,7 @@ class TD_DHR:
         # --- 1: Choose Action & Get Hypothetical Reward ---
         action_idx = self.choose_action(new_state_tensor)
         modulation = self.moves[action_idx]
-        
+
         # Calculate the *internal* reward for this hypothetical action
         hypothetical_reward = -abs(exogenous_reward - modulation - self.setpoint)
 
@@ -694,7 +684,7 @@ class TD_DHR:
         # --- 1.7: Learn ---
         # Perform one learning step
         self._learn()
-        
+
         # Periodically update the target network
         if self.step_count % 10 == 0: # Update target net every 10 steps
             self.update_target_net()
@@ -725,7 +715,7 @@ class TD_DHR:
             "epsilon": self.epsilon
         })
         return modulated_reward
-        
+
     def plot_modulation_trajectory(self, max_points=1000):
         # (Plotting code is identical, just adding epsilon)
         if not self.modulation_history:
@@ -745,22 +735,36 @@ class TD_DHR:
         plt.legend()
         plt.grid(True)
         plt.title("Homeostatic Control Trajectory (DQN Agent)")
-        
+
         plt.subplot(3, 1, 2)
         plt.plot(df["step"], df["modulation"], label="Applied Modulation (from T-lag)", color="purple")
         plt.ylabel("Modulation")
         plt.grid(True)
         plt.legend()
-        
+
         plt.subplot(3, 1, 3) # New plot for Epsilon
         plt.plot(df["step"], df["epsilon"], label="Epsilon (Exploration Rate)", color="orange")
         plt.xlabel("Step")
         plt.ylabel("Epsilon")
         plt.grid(True)
         plt.legend()
-        
+
         plt.tight_layout()
         plt.show()
 
     def step(self, *_):
         pass
+
+    def plot_external_forces(self):
+        """
+        Plot external forces applied during key episodes.
+        """
+        plt.figure(figsize=(12, 5))
+        for ep_idx, _, forces in self.level_trajectories:
+            plt.plot(forces, label=f'Episode {ep_idx}')
+        plt.xlabel('Step')
+        plt.ylabel('External Force')
+        plt.title('External Forces - PID Controller')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
