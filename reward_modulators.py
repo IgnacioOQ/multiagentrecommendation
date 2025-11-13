@@ -194,93 +194,6 @@ class NoveltyModulator:
         """
         pass
 
-
-
-class HomeostaticModulator(BaseQLearningAgent):
-    def __init__(self, setpoint=0, lag=0, **kwargs):
-        self.moves = np.arange(-50, 50)
-        self.setpoint = setpoint
-        self.modulation_history = []
-        self.lag = lag
-        self.pending_modulations = deque(maxlen=lag + 1)  # FIFO queue
-        super().__init__(n_actions=len(self.moves), **kwargs)
-
-    def act(self, exogenous_reward):
-        key = round(exogenous_reward, 2)
-        action_idx = self.choose_action(key)
-        return self.moves[action_idx]
-
-    def modify_reward(self, exogenous_reward, step=None,*_):
-        """
-        Delays the application of modulation by `lag` steps.
-        Learns now, but modulates later.
-        """
-        # Compute modulation for current exogenous_reward
-        modulation = self.act(exogenous_reward)
-        self.update_modulation(exogenous_reward, modulation)  # learning still happens now
-
-        # Store for future application
-        self.pending_modulations.append((step, exogenous_reward, modulation))
-
-        # If enough time has passed, apply oldest modulation
-        if step is not None and step >= self.lag:
-            apply_step, old_exo, old_mod = self.pending_modulations.popleft()
-            modulated_reward = old_exo - old_mod
-        else:
-            apply_step, old_exo, old_mod = step, exogenous_reward, 0
-            modulated_reward = exogenous_reward
-
-        # Record history
-        self.modulation_history.append({
-            "step": step,
-            "exogenous_reward": exogenous_reward,
-            "applied_step": apply_step,
-            "modulation": old_mod,
-            "modulated_reward": modulated_reward,
-            "setpoint": self.setpoint
-        })
-
-        return modulated_reward
-
-    def update_modulation(self, exogenous_reward, modulation):
-        key = round(exogenous_reward, 2)
-        action_idx = np.where(self.moves == modulation)[0][0]
-        modulated_reward = exogenous_reward - modulation
-        reward = -abs(modulated_reward - self.setpoint)
-        self.update(key, action_idx, reward)
-        return modulated_reward
-
-    def plot_modulation_trajectory(self, max_points=1000):
-        if not self.modulation_history:
-            print("No modulation history to plot.")
-            return
-
-        df = pd.DataFrame(self.modulation_history)
-        if max_points and len(df) > max_points:
-            df = df.iloc[-max_points:]
-
-        plt.figure(figsize=(12, 6))
-
-        plt.subplot(2, 1, 1)
-        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward", color="blue")
-        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (lagged)", color="green")
-        plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
-        plt.ylabel("Reward")
-        plt.legend()
-        plt.grid(True)
-
-        plt.subplot(2, 1, 2)
-        plt.plot(df["step"], df["modulation"], label="Applied Modulation", color="purple")
-        plt.xlabel("Step")
-        plt.ylabel("Modulation")
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-    def step(self,*_):
-        pass
-
-
 class PIDController:
     """
     Classic PID controller.
@@ -394,47 +307,202 @@ class PIDController:
         plt.grid(True)
         plt.show()
 
-# --- "Time Difference" Modulator with Memory (Unchanged) ---
+class HomeostaticModulator(BaseQLearningAgent):
+    def __init__(self, setpoint=0, lag=0, n_bins=20, reward_range=(-100, 100), **kwargs):
+        self.moves = np.arange(-50, 50)
+        self.setpoint = setpoint
+        self.modulation_history = []
+        self.lag = lag
+        self.pending_modulations = deque(maxlen=lag + 1)  # FIFO queue
+        
+        # --- FIX: Discretization ---
+        self.n_bins = n_bins
+        self.reward_range = reward_range
+        # Create bin edges. e.g., 20 bins for range -100 to 100
+        self.bins = np.linspace(self.reward_range[0], self.reward_range[1], self.n_bins + 1)
+        # --- End Fix ---
+
+        super().__init__(n_actions=len(self.moves), **kwargs)
+
+    # --- FIX: New method to get discrete state key ---
+    def _get_state_key(self, exogenous_reward):
+        """Discretizes the continuous reward into a bin index."""
+        # Clip reward to be within the defined range
+        clipped_reward = np.clip(exogenous_reward, self.reward_range[0], self.reward_range[1])
+        # Find which bin the reward falls into
+        # np.digitize returns index i such that bins[i-1] <= x < bins[i]
+        # We subtract 1 to get a 0-based index.
+        # We also handle the edge case where reward == reward_range[1]
+        bin_index = np.digitize(clipped_reward, self.bins) - 1
+        return max(0, min(bin_index, self.n_bins - 1)) # Ensure it's within [0, n_bins-1]
+    # --- End Fix ---
+
+    def act(self, exogenous_reward, step=0): # Added step
+        # --- FIX: Use discretized key ---
+        key = self._get_state_key(exogenous_reward)
+        # --- End Fix ---
+        action_idx = self.choose_action(key, step=step) # Pass step
+        return self.moves[action_idx]
+
+    def modify_reward(self, exogenous_reward, step=None,*_):
+        """
+        Delays the application of modulation by `lag` steps.
+        Learns now, but modulates later.
+        """
+        # Compute modulation for current exogenous_reward
+        modulation = self.act(exogenous_reward, step=step) # Pass step
+        self.update_modulation(exogenous_reward, modulation, step=step)  # learning still happens now
+
+        # Store for future application
+        # --- FIX: Store ONLY the modulation, not the full tuple ---
+        self.pending_modulations.append(modulation)
+        # --- End Fix ---
+
+        # If enough time has passed, apply oldest modulation
+        if step is not None and step >= self.lag:
+            # --- FIX: Pop the modulation calculated at T-lag ---
+            old_mod = self.pending_modulations.popleft()
+            # --- FIX: Apply OLD modulation to CURRENT reward ---
+            # This is the correct behavior for a lagged system
+            modulated_reward = exogenous_reward - old_mod
+            apply_step = step - self.lag
+            # --- End Fix ---
+        else:
+            apply_step, old_mod = step, 0
+            modulated_reward = exogenous_reward # No modulation applied yet
+
+        # Record history
+        self.modulation_history.append({
+            "step": step,
+            "exogenous_reward": exogenous_reward,
+            "applied_step": apply_step, # Step when modulation was calculated
+            "modulation": old_mod, # The modulation value applied
+            "modulated_reward": modulated_reward, # The final output
+            "setpoint": self.setpoint
+        })
+
+        return modulated_reward
+
+    def update_modulation(self, exogenous_reward, modulation, step=None):
+        # --- FIX: Use discretized key ---
+        key = self._get_state_key(exogenous_reward)
+        # --- End Fix ---
+        
+        action_idx = np.where(self.moves == modulation)[0][0]
+        
+        # Internal reward is based on the immediate (non-lagged) effect
+        current_modulated_reward = exogenous_reward - modulation
+        reward = -abs(current_modulated_reward - self.setpoint)
+        
+        self.update(key, action_idx, reward, step=step) # Pass step
+        return current_modulated_reward # Return what was used for learning
+
+    def plot_modulation_trajectory(self, max_points=1000):
+        if not self.modulation_history:
+            print("No modulation history to plot.")
+            return
+
+        df = pd.DataFrame(self.modulation_history)
+        if max_points and len(df) > max_points:
+            df = df.iloc[-max_points:]
+
+        plt.figure(figsize=(12, 6))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward", color="blue")
+        # This is R(T) - M(T-lag)
+        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (R[T] - M[T-lag])", color="green")
+        plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
+        plt.ylabel("Reward")
+        plt.legend()
+        plt.grid(True)
+
+        plt.subplot(2, 1, 2)
+        # This is M(T-lag)
+        plt.plot(df["step"], df["modulation"], label="Applied Modulation (M[T-lag])", color="purple")
+        plt.xlabel("Step")
+        plt.ylabel("Modulation")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    def step(self,*_):
+        pass
+
+# --- "Time Difference" Modulator with Memory (Fixed) ---
 class TD_HomeostaticModulator(BaseQLearningAgent):
     """
     Implements a homeostatic controller with "episodic memory" using a Q-table.
-    Its state is a *history* of the last `history_length` exogenous rewards.
+    FIX: State is a *discretized* history of the last `history_length` exogenous rewards.
     """
 
-    def __init__(self, setpoint=0, lag=0, history_length=3, **kwargs):
+    def __init__(self, setpoint=0, lag=0, history_length=3, 
+                 n_bins=10, reward_range=(-100, 100), **kwargs):
         self.moves = np.arange(-50, 50)
         self.setpoint = setpoint
         self.modulation_history = []
         self.lag = lag
         self.history_length = history_length
         self.pending_modulations = deque(maxlen=lag + 1)
+        
+        # --- FIX: Discretization ---
+        self.n_bins = n_bins
+        self.reward_range = reward_range
+        self.bins = np.linspace(self.reward_range[0], self.reward_range[1], self.n_bins + 1)
         self.state_history = deque(maxlen=self.history_length)
-
+        # Initialize state history with the bin for the setpoint
+        setpoint_bin = self._discretize_reward(self.setpoint)
         for _ in range(self.history_length):
-            self.state_history.append(self.setpoint)
+            self.state_history.append(setpoint_bin)
+        # --- End Fix ---
 
         super().__init__(n_actions=len(self.moves), **kwargs)
 
-    def _get_state_key(self):
-        return tuple(round(r, 1) for r in self.state_history)
+    # --- FIX: New discretization helper ---
+    def _discretize_reward(self, exogenous_reward):
+        """Discretizes a single continuous reward into a bin index."""
+        clipped_reward = np.clip(exogenous_reward, self.reward_range[0], self.reward_range[1])
+        bin_index = np.digitize(clipped_reward, self.bins) - 1
+        return max(0, min(bin_index, self.n_bins - 1)) # Ensure it's within [0, n_bins-1]
+    # --- End Fix ---
 
-    def act(self, state_key):
-        action_idx = self.choose_action(state_key)
+    def _get_state_key(self):
+        # The state key is now a tuple of bin indices
+        return tuple(self.state_history)
+
+    def act(self, state_key, step=0): # Added step
+        action_idx = self.choose_action(state_key, step=step) # Pass step
         return self.moves[action_idx]
 
     def modify_reward(self, exogenous_reward, step=None, *_):
-        self.state_history.append(exogenous_reward)
+        # --- FIX: Discretize the new reward before adding to history ---
+        discretized_reward = self._discretize_reward(exogenous_reward)
+        self.state_history.append(discretized_reward)
+        # --- End Fix ---
+        
         key = self._get_state_key()
-        modulation = self.act(key)
-        self.update_modulation(key, exogenous_reward, modulation)
-        self.pending_modulations.append((step, exogenous_reward, modulation))
+        modulation = self.act(key, step=step) # Pass step
+        self.update_modulation(key, exogenous_reward, modulation, step=step) # Pass step
+        
+        # --- FIX: Store ONLY the modulation ---
+        self.pending_modulations.append(modulation)
+        # --- End Fix ---
 
         if step is not None and step >= self.lag:
-            apply_step, old_exo, old_mod = self.pending_modulations.popleft()
-            modulated_reward = old_exo - old_mod
-            current_modulated = exogenous_reward - old_mod
+            # --- FIX: Pop old modulation, apply to current reward ---
+            old_mod = self.pending_modulations.popleft()
+            modulated_reward = exogenous_reward - old_mod
+            apply_step = step - self.lag
+            # --- End Fix ---
+            
+            # This is R(T) - M(T-lag)
+            current_modulated = exogenous_reward - old_mod 
+            # This is R(T-lag) - M(T-lag) -> what the agent *tried* to do
+            # We can't calculate this easily anymore without storing old_exo,
+            # so we'll simplify the plot.
+            
         else:
-            apply_step, old_exo, old_mod = step, exogenous_reward, 0
+            apply_step, old_mod = step, 0
             modulated_reward = exogenous_reward
             current_modulated = exogenous_reward
 
@@ -443,21 +511,21 @@ class TD_HomeostaticModulator(BaseQLearningAgent):
             "exogenous_reward": exogenous_reward,
             "applied_step": apply_step,
             "modulation": old_mod,
-            "modulated_reward": modulated_reward,
-            "current_modulated_reward": current_modulated,
+            "modulated_reward": modulated_reward, # This is R(T) - M(T-lag)
+            "current_modulated_reward": current_modulated, # Same as above now
             "setpoint": self.setpoint
         })
         return modulated_reward
 
-    def update_modulation(self, state_key, exogenous_reward, modulation):
+    def update_modulation(self, state_key, exogenous_reward, modulation, step=None):
         action_idx = np.where(self.moves == modulation)[0][0]
-        modulated_reward = exogenous_reward - modulation
-        reward = -abs(modulated_reward - self.setpoint)
-        self.update(state_key, action_idx, reward)
-        return modulated_reward
+        # Internal reward is based on the immediate (non-lagged) effect
+        current_modulated_reward = exogenous_reward - modulation
+        reward = -abs(current_modulated_reward - self.setpoint)
+        self.update(state_key, action_idx, reward, step=step) # Pass step
+        return current_modulated_reward
 
     def plot_modulation_trajectory(self, max_points=1000):
-        # (Plotting code omitted for brevity, but it's identical to the file)
         if not self.modulation_history:
             print("No modulation history to plot.")
             return
@@ -467,16 +535,18 @@ class TD_HomeostaticModulator(BaseQLearningAgent):
 
         plt.figure(figsize=(12, 8))
         plt.subplot(2, 1, 1)
-        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward (at T)", color="blue", alpha=0.7)
-        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (Official, from T-lag)", color="green", linestyle='-')
-        plt.plot(df["step"], df["current_modulated_reward"], label="Modulated Reward (Current_Exo - Old_Mod)", color="red", linestyle=':', alpha=0.8)
+        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward (R[T])", color="blue", alpha=0.7)
+        # --- FIX: Simplified plot label ---
+        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (R[T] - M[T-lag])", color="green", linestyle='-')
+        # --- End Fix ---
         plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
         plt.ylabel("Reward")
         plt.legend()
         plt.grid(True)
-        plt.title("Homeostatic Control Trajectory")
+        plt.title("Homeostatic Control Trajectory (TD-Tabular)")
+        
         plt.subplot(2, 1, 2)
-        plt.plot(df["step"], df["modulation"], label="Applied Modulation (from T-lag)", color="purple")
+        plt.plot(df["step"], df["modulation"], label="Applied Modulation (M[T-lag])", color="purple")
         plt.xlabel("Step")
         plt.ylabel("Modulation")
         plt.grid(True)
@@ -546,7 +616,7 @@ class QNetwork(nn.Module):
             q_values = self.fc3(x)
         return q_values
 
-# --- NEW "Temporal Difference Deep Homeostatic Regulator" ---
+# --- NEW "Temporal Difference Deep Homeostatic Regulator" (Fixed) ---
 class TD_DHR:
     """
     Implements a Deep Q-Network (DQN) homeostatic controller.
@@ -567,7 +637,9 @@ class TD_DHR:
         self.lag = lag
         self.history_length = history_length
         self.batch_size = batch_size
-        self.gamma = gamma
+        # --- FIX: Set gamma to 0 for bandit problem ---
+        self.gamma = 0.0 # This problem is a contextual bandit, not an MDP
+        # --- End Fix ---
         self.tau = tau
         self.epsilon = epsilon_start
         self.epsilon_decay = epsilon_decay
@@ -600,19 +672,21 @@ class TD_DHR:
 
     def _get_state_tensor(self, history_deque):
         """Converts a state history deque to a PyTorch FloatTensor."""
-        return torch.tensor(history_deque, dtype=torch.float32).to(self.device)
+        return torch.tensor(list(history_deque), dtype=torch.float32).to(self.device)
 
-    def choose_action(self, state_tensor):
+    def choose_action(self, state_tensor, step=0): # Added step
         """Chooses an action using an epsilon-greedy policy."""
-        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+        # Only decay exploration if not pre-training
+        if step != -1:
+            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-        if random.random() < self.epsilon:
+        if random.random() < self.epsilon and step != -1: # Don't explore during pre-training
             action_idx = random.randint(0, self.n_actions - 1)
         else:
             with torch.no_grad():
-                # Add a batch dimension (B, L) -> (1, B, L)
-                state_tensor = state_tensor.unsqueeze(0)
-                q_values = self.policy_net(state_tensor)
+                # Add a batch dimension (L) -> (1, L)
+                state_tensor_batch = state_tensor.unsqueeze(0)
+                q_values = self.policy_net(state_tensor_batch)
                 action_idx = q_values.argmax().item()
 
         return action_idx
@@ -639,10 +713,11 @@ class TD_DHR:
 
         # --- Compute V(s') ---
         with torch.no_grad():
-            # Get the *best* Q-value for the next state from the *target* network
-            next_q_max = self.target_net(next_states).max(1)[0].unsqueeze(-1)
-            # Compute the target Q-value: r + gamma * max(Q(s', a'))
-            target_q_values = rewards + (self.gamma * next_q_max)
+            # --- FIX: Target is just the immediate reward (gamma=0) ---
+            # next_q_max = self.target_net(next_states).max(1)[0].unsqueeze(-1)
+            # target_q_values = rewards + (self.gamma * next_q_max)
+            target_q_values = rewards
+            # --- End Fix ---
 
         # --- Compute Loss ---
         loss = self.loss_function(current_q_values, target_q_values)
@@ -671,7 +746,9 @@ class TD_DHR:
         new_state_tensor = self._get_state_tensor(self.state_history)
 
         # --- 1: Choose Action & Get Hypothetical Reward ---
-        action_idx = self.choose_action(new_state_tensor)
+        # --- FIX: Pass step to choose_action to control exploration ---
+        action_idx = self.choose_action(new_state_tensor, step=step)
+        # --- End Fix ---
         modulation = self.moves[action_idx]
 
         # Calculate the *internal* reward for this hypothetical action
@@ -679,27 +756,35 @@ class TD_DHR:
 
         # --- 1.5: Store Experience ---
         # Store the (s, a, r, s') transition in the replay buffer
-        self.replay_buffer.push(old_state_tensor, action_idx, hypothetical_reward, new_state_tensor)
+        # Only store if not in pre-training (step != -1)
+        if step != -1:
+            self.replay_buffer.push(old_state_tensor, action_idx, hypothetical_reward, new_state_tensor)
 
         # --- 1.7: Learn ---
-        # Perform one learning step
-        self._learn()
+        # Perform one learning step (only if not pre-training)
+        if step != -1:
+            self._learn()
 
-        # Periodically update the target network
-        if self.step_count % 10 == 0: # Update target net every 10 steps
-            self.update_target_net()
+            # Periodically update the target network
+            if self.step_count % 10 == 0: # Update target net every 10 steps
+                self.update_target_net()
 
         # --- 2. STORE FOR LATER (Time T) ---
-        # This lag logic is identical to the other agents
-        self.pending_modulations.append((step, exogenous_reward, modulation))
+        # --- FIX: Store ONLY the modulation ---
+        self.pending_modulations.append(modulation)
+        # --- End Fix ---
 
         # --- 3. APPLY FROM PAST (Time T - lag) ---
         if step is not None and step >= self.lag:
-            apply_step, old_exo, old_mod = self.pending_modulations.popleft()
-            modulated_reward = old_exo - old_mod
-            current_modulated = exogenous_reward - old_mod
+            # --- FIX: Pop old modulation, apply to current reward ---
+            old_mod = self.pending_modulations.popleft()
+            modulated_reward = exogenous_reward - old_mod
+            apply_step = step - self.lag
+            # This is R(T) - M(T-lag)
+            current_modulated = exogenous_reward - old_mod 
+            # --- End Fix ---
         else:
-            apply_step, old_exo, old_mod = step, exogenous_reward, 0
+            apply_step, old_mod = step, 0
             modulated_reward = exogenous_reward
             current_modulated = exogenous_reward
 
@@ -710,14 +795,13 @@ class TD_DHR:
             "applied_step": apply_step,
             "modulation": old_mod,
             "modulated_reward": modulated_reward,
-            "current_modulated_reward": current_modulated,
+            "current_modulated_reward": current_modulated, # Same as modulated_reward
             "setpoint": self.setpoint,
             "epsilon": self.epsilon
         })
         return modulated_reward
 
     def plot_modulation_trajectory(self, max_points=1000):
-        # (Plotting code is identical, just adding epsilon)
         if not self.modulation_history:
             print("No modulation history to plot.")
             return
@@ -727,9 +811,10 @@ class TD_DHR:
 
         plt.figure(figsize=(12, 10))
         plt.subplot(3, 1, 1) # Changed to 3 plots
-        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward (at T)", color="blue", alpha=0.7)
-        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (Official, from T-lag)", color="green", linestyle='-')
-        plt.plot(df["step"], df["current_modulated_reward"], label="Modulated Reward (Current_Exo - Old_Mod)", color="red", linestyle=':', alpha=0.8)
+        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward (R[T])", color="blue", alpha=0.7)
+        # --- FIX: Simplified plot label ---
+        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (R[T] - M[T-lag])", color="green", linestyle='-')
+        # --- End Fix ---
         plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
         plt.ylabel("Reward")
         plt.legend()
@@ -737,7 +822,7 @@ class TD_DHR:
         plt.title("Homeostatic Control Trajectory (DQN Agent)")
 
         plt.subplot(3, 1, 2)
-        plt.plot(df["step"], df["modulation"], label="Applied Modulation (from T-lag)", color="purple")
+        plt.plot(df["step"], df["modulation"], label="Applied Modulation (M[T-lag])", color="purple")
         plt.ylabel("Modulation")
         plt.grid(True)
         plt.legend()
@@ -754,17 +839,3 @@ class TD_DHR:
 
     def step(self, *_):
         pass
-
-    def plot_external_forces(self):
-        """
-        Plot external forces applied during key episodes.
-        """
-        plt.figure(figsize=(12, 5))
-        for ep_idx, _, forces in self.level_trajectories:
-            plt.plot(forces, label=f'Episode {ep_idx}')
-        plt.xlabel('Step')
-        plt.ylabel('External Force')
-        plt.title('External Forces - PID Controller')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
