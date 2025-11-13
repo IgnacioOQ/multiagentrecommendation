@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from collections import deque, namedtuple # Make sure deque and namedtuple are imported
 
 class MoodSwings:
     def __init__(self, n_moods=50):
@@ -558,247 +559,100 @@ class TD_HomeostaticModulator(BaseQLearningAgent):
         pass
 
 
-# --- NEW Deep Q-Network Components ---
+# --- Replay Memory for DQN ---
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
-class ReplayBuffer:
-    """A simple FIFO experience replay buffer for DQN."""
+class ReplayMemory(object):
     def __init__(self, capacity):
-        self.buffer = deque(maxlen=capacity)
+        self.memory = deque([], maxlen=capacity)
 
-    def push(self, state, action, reward, next_state):
-        """Saves a transition."""
-        self.buffer.append((state, action, reward, next_state))
+    def push(self, *args):
+        """Save a transition"""
+        self.memory.append(Transition(*args))
 
     def sample(self, batch_size):
-        """Samples a batch of transitions."""
-        states, actions, rewards, next_states = zip(*random.sample(self.buffer, batch_size))
-        return (torch.stack(states),
-                torch.tensor(actions, dtype=torch.int64).unsqueeze(-1),
-                torch.tensor(rewards, dtype=torch.float32).unsqueeze(-1),
-                torch.stack(next_states))
+        return random.sample(self.memory, batch_size)
 
     def __len__(self):
-        return len(self.buffer)
+        return len(self.memory)
 
-class QNetwork(nn.Module):
-    """The neural network that approximates the Q-function."""
-    def __init__(self, input_dim, output_dim, network_type='gru', hidden_dim=64):
-        super(QNetwork, self).__init__()
-        self.network_type = network_type
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.hidden_dim = hidden_dim
-
-        if network_type == 'gru':
-            # GRU expects input shape (batch_size, seq_len, input_size)
-            # Our state is (batch_size, history_length), so input_size=1
-            self.gru = nn.GRU(1, hidden_dim, batch_first=True)
-            self.fc1 = nn.Linear(hidden_dim, hidden_dim)
-            self.fc2 = nn.Linear(hidden_dim, output_dim)
-        elif network_type == 'mlp':
-            self.fc1 = nn.Linear(input_dim, hidden_dim)
-            self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-            self.fc3 = nn.Linear(hidden_dim, output_dim)
-        else:
-            raise ValueError(f"Unknown network type: {network_type}")
-
-    def forward(self, state):
-        if self.network_type == 'gru':
-            # Reshape state from (batch_size, seq_len) to (batch_size, seq_len, 1)
-            state_gru = state.unsqueeze(-1)
-            gru_out, hidden = self.gru(state_gru)
-            # We use the final hidden state
-            x = F.relu(self.fc1(hidden.squeeze(0)))
-            q_values = self.fc2(x)
-        else: # mlp
-            x = F.relu(self.fc1(state))
-            x = F.relu(self.fc2(x))
-            q_values = self.fc3(x)
-        return q_values
-
-# --- NEW "Temporal Difference Deep Homeostatic Regulator" (Fixed) ---
+# --- Base TD (Q-table) DHR Controller ---
 class TD_DHR:
-    """
-    Implements a Deep Q-Network (DQN) homeostatic controller.
-
-    This agent uses a neural network (MLP or GRU) to generalize
-    from a history of states, overcoming the "curse of dimensionality"
-    of the tabular TD_HomeostaticModulator.
-    """
-    def __init__(self, setpoint=0, lag=0, history_length=5,
-                 network_type='gru', hidden_dim=64, learning_rate=1e-3,
-                 replay_buffer_size=10000, batch_size=64, gamma=0.99,
-                 tau=1e-3, epsilon_start=1.0, epsilon_decay=0.999,
-                 epsilon_min=0.01):
-
-        self.moves = np.arange(-50, 50)
-        self.n_actions = len(self.moves)
+    def __init__(self, setpoint, lag=0, history_length=5):
         self.setpoint = setpoint
         self.lag = lag
         self.history_length = history_length
-        self.batch_size = batch_size
-        # --- FIX: Set gamma to 0 for bandit problem ---
-        self.gamma = 0.0 # This problem is a contextual bandit, not an MDP
-        # --- End Fix ---
-        self.tau = tau
-        self.epsilon = epsilon_start
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
-
-        # Use GPU if available, else CPU
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # Initialize Networks
-        input_dim = self.history_length
-        self.policy_net = QNetwork(input_dim, self.n_actions, network_type, hidden_dim).to(self.device)
-        self.target_net = QNetwork(input_dim, self.n_actions, network_type, hidden_dim).to(self.device)
-        self.target_net.load_state_dict(self.policy_net.state_dict())
-        self.target_net.eval()  # Target network is only for evaluation
-
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=learning_rate)
-        self.loss_function = nn.SmoothL1Loss() # Huber Loss, robust to outliers
-
-        # Initialize Replay Buffer
-        self.replay_buffer = ReplayBuffer(replay_buffer_size)
-
-        # Initialize state and action histories
-        self.pending_modulations = deque(maxlen=lag + 1)
-        self.state_history = deque(maxlen=self.history_length)
-        for _ in range(self.history_length):
-            self.state_history.append(self.setpoint)
-
+        self.history = deque([0] * history_length, maxlen=history_length)
         self.modulation_history = []
-        self.step_count = 0
+        
+        # This agent learns to control the modulation
+        self.agent = BaseQLearningAgent(
+            n_actions=self.history_length,
+            learning_rate=0.1,
+            gamma=0.9,
+            exploration_decay=0.9999,
+            min_exploration_rate=0.01
+        )
+        self.step = 0
 
-    def _get_state_tensor(self, history_deque):
-        """Converts a state history deque to a PyTorch FloatTensor."""
-        return torch.tensor(list(history_deque), dtype=torch.float32).to(self.device)
+    def _get_state(self):
+        """ The "physiological" state is the mean of the recent reward history. """
+        if not self.history:
+            return 0
+        return np.mean(self.history)
 
-    def choose_action(self, state_tensor, step=0): # Added step
-        """Chooses an action using an epsilon-greedy policy."""
-        # Only decay exploration if not pre-training
-        if step != -1:
-            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+    def modify_reward(self, exogenous_reward, step):
+        self.step += 1
+        
+        # 1. Get current physiological state (H_T)
+        H_T = self._get_state()
+        state_key = int(H_T) # Discretize state for Q-table
 
-        if random.random() < self.epsilon and step != -1: # Don't explore during pre-training
-            action_idx = random.randint(0, self.n_actions - 1)
-        else:
-            with torch.no_grad():
-                # Add a batch dimension (L) -> (1, L)
-                state_tensor_batch = state_tensor.unsqueeze(0)
-                q_values = self.policy_net(state_tensor_batch)
-                action_idx = q_values.argmax().item()
+        # 2. Homeostatic controller chooses an action (which past R to use for modulation)
+        # The action is an *index* into the history
+        action = self.agent.choose_action(state_key, step)
+        
+        # 3. Get modulation signal (M[T-lag])
+        # The action 'k' selects R[T-k] from history as the modulation signal
+        M_T_minus_lag = self.history[action] 
 
-        return action_idx
+        # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
+        modulated_reward = exogenous_reward - M_T_minus_lag
 
-    def _learn(self):
-        """Trains the policy network using a batch from the replay buffer."""
-        if len(self.replay_buffer) < self.batch_size:
-            return  # Not enough experiences to learn
+        # 5. Update history with the *new* exogenous reward
+        self.history.appendleft(exogenous_reward)
 
-        # Sample a batch
-        states, actions, rewards, next_states = self.replay_buffer.sample(self.batch_size)
+        # 6. Get the *next* physiological state (H[T+1])
+        H_T_plus_1 = self._get_state()
+        next_state_key = int(H_T_plus_1)
+        
+        # 7. Calculate intrinsic reward for the *controller*
+        # The controller is rewarded for keeping the *next* state near the setpoint
+        intrinsic_reward = -abs(H_T_plus_1 - self.setpoint)
 
-        # Move batch to the correct device
-        states = states.to(self.device)
-        actions = actions.to(self.device)
-        rewards = rewards.to(self.device)
-        next_states = next_states.to(self.device)
+        # 8. Update the homeostatic agent's Q-table
+        #    (S_T, A_T, R_{T+1}, S_{T+1})
+        # ---
+        # *** BUG FIX ***
+        # The original call was: self.agent.update(state_key, action, next_state_key, intrinsic_reward)
+        # This passed next_state as the reward and reward as the next_state.
+        # The correct order is (state, action, reward, next_state):
+        # ---
+        self.agent.update(state_key, action, intrinsic_reward, next_state_key)
 
-        # --- Compute Q(s, a) ---
-        # Get Q-values from the policy network for all actions
-        q_values = self.policy_net(states)
-        # Gather the Q-value for the specific action that was taken
-        current_q_values = q_values.gather(1, actions)
-
-        # --- Compute V(s') ---
-        with torch.no_grad():
-            # --- FIX: Target is just the immediate reward (gamma=0) ---
-            # next_q_max = self.target_net(next_states).max(1)[0].unsqueeze(-1)
-            # target_q_values = rewards + (self.gamma * next_q_max)
-            target_q_values = rewards
-            # --- End Fix ---
-
-        # --- Compute Loss ---
-        loss = self.loss_function(current_q_values, target_q_values)
-
-        # --- Perform Gradient Descent ---
-        self.optimizer.zero_grad()
-        loss.backward()
-        # Clip gradients to prevent exploding gradients
-        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 1.0)
-        self.optimizer.step()
-
-    def update_target_net(self):
-        """Performs a soft update (Polyak averaging) of the target network."""
-        for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
-            target_param.data.copy_(self.tau * policy_param.data + (1.0 - self.tau) * target_param.data)
-
-    def modify_reward(self, exogenous_reward, step=None, *_):
-        """Main control loop for the DQN agent."""
-        self.step_count = step if step is not None else self.step_count + 1
-
-        # --- 0.5: Update State ---
-        # Get state *before* adding new reward
-        old_state_tensor = self._get_state_tensor(self.state_history)
-        self.state_history.append(exogenous_reward)
-        # Get state *after* adding new reward
-        new_state_tensor = self._get_state_tensor(self.state_history)
-
-        # --- 1: Choose Action & Get Hypothetical Reward ---
-        # --- FIX: Pass step to choose_action to control exploration ---
-        action_idx = self.choose_action(new_state_tensor, step=step)
-        # --- End Fix ---
-        modulation = self.moves[action_idx]
-
-        # Calculate the *internal* reward for this hypothetical action
-        hypothetical_reward = -abs(exogenous_reward - modulation - self.setpoint)
-
-        # --- 1.5: Store Experience ---
-        # Store the (s, a, r, s') transition in the replay buffer
-        # Only store if not in pre-training (step != -1)
-        if step != -1:
-            self.replay_buffer.push(old_state_tensor, action_idx, hypothetical_reward, new_state_tensor)
-
-        # --- 1.7: Learn ---
-        # Perform one learning step (only if not pre-training)
-        if step != -1:
-            self._learn()
-
-            # Periodically update the target network
-            if self.step_count % 10 == 0: # Update target net every 10 steps
-                self.update_target_net()
-
-        # --- 2. STORE FOR LATER (Time T) ---
-        # --- FIX: Store ONLY the modulation ---
-        self.pending_modulations.append(modulation)
-        # --- End Fix ---
-
-        # --- 3. APPLY FROM PAST (Time T - lag) ---
-        if step is not None and step >= self.lag:
-            # --- FIX: Pop old modulation, apply to current reward ---
-            old_mod = self.pending_modulations.popleft()
-            modulated_reward = exogenous_reward - old_mod
-            apply_step = step - self.lag
-            # This is R(T) - M(T-lag)
-            current_modulated = exogenous_reward - old_mod 
-            # --- End Fix ---
-        else:
-            apply_step, old_mod = step, 0
-            modulated_reward = exogenous_reward
-            current_modulated = exogenous_reward
-
-        # --- 4. RECORD & RETURN ---
+        # 9. Store history for plotting
         self.modulation_history.append({
             "step": step,
             "exogenous_reward": exogenous_reward,
-            "applied_step": apply_step,
-            "modulation": old_mod,
             "modulated_reward": modulated_reward,
-            "current_modulated_reward": current_modulated, # Same as modulated_reward
-            "setpoint": self.setpoint,
-            "epsilon": self.epsilon
+            "modulation": M_T_minus_lag,
+            "state_H_T": H_T,
+            "next_state_H_T+1": H_T_plus_1,
+            "intrinsic_reward": intrinsic_reward,
+            "action": action,
+            "epsilon": self.agent.exploration_rate
         })
+        
         return modulated_reward
 
     def plot_modulation_trajectory(self, max_points=1000):
@@ -812,14 +666,14 @@ class TD_DHR:
         plt.figure(figsize=(12, 10))
         plt.subplot(3, 1, 1) # Changed to 3 plots
         plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward (R[T])", color="blue", alpha=0.7)
-        # --- FIX: Simplified plot label ---
-        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (R[T] - M[T-lag])", color="green", linestyle='-')
+        # --- FIX: Simplified plot label ---(This was in your file snippet)
+        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (R'[T])", color="green", linestyle='-')
         # --- End Fix ---
         plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
         plt.ylabel("Reward")
         plt.legend()
         plt.grid(True)
-        plt.title("Homeostatic Control Trajectory (DQN Agent)")
+        plt.title(f"Homeostatic Control Trajectory ({type(self).__name__})")
 
         plt.subplot(3, 1, 2)
         plt.plot(df["step"], df["modulation"], label="Applied Modulation (M[T-lag])", color="purple")
@@ -828,14 +682,182 @@ class TD_DHR:
         plt.legend()
 
         plt.subplot(3, 1, 3) # New plot for Epsilon
-        plt.plot(df["step"], df["epsilon"], label="Epsilon (Exploration Rate)", color="orange")
+        # --- FIX: Plot 'epsilon' not 'step' vs 'step' ---
+        if 'epsilon' in df.columns:
+            plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
+        # --- End Fix ---
+        plt.ylabel("Exploration Rate")
         plt.xlabel("Step")
-        plt.ylabel("Epsilon")
         plt.grid(True)
         plt.legend()
 
         plt.tight_layout()
         plt.show()
 
-    def step(self, *_):
-        pass
+# --- DQN (Deep Q-Network) DHR Controller ---
+
+class DQN(nn.Module):
+    """Simple Feed-Forward Network"""
+    def __init__(self, state_size, action_size):
+        super(DQN, self).__init__()
+        self.layer1 = nn.Linear(state_size, 64)
+        self.layer2 = nn.Linear(64, 64)
+        self.layer3 = nn.Linear(64, action_size)
+
+    def forward(self, x):
+        x = F.relu(self.layer1(x))
+        x = F.relu(self.layer2(x))
+        return self.layer3(x)
+
+class DQN_DHR(TD_DHR):
+    def __init__(self, setpoint, lag=0, history_length=5, 
+                 gamma=0.9, batch_size=128, replay_memory=10000, 
+                 target_update=10, lr=1e-3):
+        
+        # Don't call super().__init__() for 'agent', we replace it
+        self.setpoint = setpoint
+        self.lag = lag
+        self.history_length = history_length
+        self.history = deque([0] * history_length, maxlen=history_length)
+        self.modulation_history = []
+        self.step = 0
+        
+        self.state_size = 1  # State is just the mean H_T
+        self.action_size = history_length
+        self.gamma = gamma
+        self.batch_size = batch_size
+        self.target_update = target_update
+        self.exploration_rate = 1.0
+        self.exploration_decay = 0.9999
+        self.min_exploration_rate = 0.01
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        self.policy_net = DQN(self.state_size, self.action_size).to(self.device)
+        self.target_net = DQN(self.state_size, self.action_size).to(self.device)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval()  # Target network is only for inference
+
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
+        self.memory = ReplayMemory(replay_memory)
+
+    def choose_action(self, H_T, step):
+        """ Choose action using DQN policy net and e-greedy """
+        
+        # Epsilon decay
+        if step > 0: # Allow pre-training exploration to be controlled
+            self.exploration_rate = max(self.min_exploration_rate, 
+                                        self.exploration_rate * self.exploration_decay)
+        
+        epsilon = self.exploration_rate if step > 0 else 0.0 # Force greedy if step = -1
+
+        if np.random.rand() < epsilon:
+            # Exploration
+            return torch.tensor([[random.randrange(self.action_size)]], 
+                                device=self.device, dtype=torch.long)
+        else:
+            # Exploitation
+            with torch.no_grad():
+                state_tensor = torch.tensor([H_T], device=self.device, dtype=torch.float32).unsqueeze(0)
+                # .max(1)[1] gets the *index* (the action) of the highest Q-value
+                return self.policy_net(state_tensor).max(1)[1].view(1, 1)
+
+    def modify_reward(self, exogenous_reward, step):
+        """ This method overrides the parent TD_DHR.modify_reward """
+        self.step += 1
+        
+        # 1. Get current physiological state (H_T)
+        H_T = self._get_state()
+
+        # 2. Homeostatic controller chooses an action (tensor)
+        action_tensor = self.choose_action(H_T, step)
+        action = action_tensor.item() # Convert to scalar
+        
+        # 3. Get modulation signal (M[T-lag])
+        M_T_minus_lag = self.history[action] 
+
+        # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
+        modulated_reward = exogenous_reward - M_T_minus_lag
+
+        # 5. Update history with the *new* exogenous reward
+        self.history.appendleft(exogenous_reward)
+
+        # 6. Get the *next* physiological state (H[T+1])
+        H_T_plus_1 = self._get_state()
+        
+        # 7. Calculate intrinsic reward for the *controller*
+        intrinsic_reward = -abs(H_T_plus_1 - self.setpoint)
+        reward_tensor = torch.tensor([intrinsic_reward], device=self.device)
+        
+        # 8. Store the transition in memory
+        state_tensor = torch.tensor([H_T], device=self.device, dtype=torch.float32).unsqueeze(0)
+        next_state_tensor = torch.tensor([H_T_plus_1], device=self.device, dtype=torch.float32).unsqueeze(0)
+        
+        self.memory.push(state_tensor, action_tensor, next_state_tensor, reward_tensor)
+
+        # 9. Perform one step of the optimization (on the policy network)
+        if step > 0: # Only optimize during actual steps, not pre-training
+            self.optimize_model()
+
+        # 10. Update target network
+        if step > 0 and step % self.target_update == 0:
+            self.target_net.load_state_dict(self.policy_net.state_dict())
+
+        # 11. Store history for plotting
+        self.modulation_history.append({
+            "step": step,
+            "exogenous_reward": exogenous_reward,
+            "modulated_reward": modulated_reward,
+            "modulation": M_T_minus_lag,
+            "state_H_T": H_T,
+            "next_state_H_T+1": H_T_plus_1,
+            "intrinsic_reward": intrinsic_reward,
+            "action": action,
+            "epsilon": self.exploration_rate if step > 0 else 0
+        })
+        
+        return modulated_reward
+
+    def optimize_model(self):
+        if len(self.memory) < self.batch_size:
+            return  # Not enough samples in memory yet
+        
+        transitions = self.memory.sample(self.batch_size)
+        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043)
+        batch = Transition(*zip(*transitions))
+
+        # Compute a mask of non-final states and concatenate the batch elements
+        # (A final state would be marked by next_state is None)
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                              batch.next_state)), device=self.device, dtype=torch.bool)
+        
+        # We need to handle the fact that states are already tensors, so we concat
+        non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+        
+        state_batch = torch.cat(batch.state)
+        action_batch = torch.cat(batch.action)
+        reward_batch = torch.cat(batch.reward)
+
+        # Compute Q(S_t, A_t)
+        # These are the Q-values our policy net *thought* were good
+        # We .gather(1, action_batch) to pick the Q-value for the action we *took*
+        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+
+        # Compute V(S_{t+1}) for all next states.
+        # This is where we use the target net
+        next_state_values = torch.zeros(self.batch_size, device=self.device)
+        next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
+
+        # Compute the expected Q values (The "ground truth" from Bellman)
+        # R + gamma * V(S_{t+1})
+        expected_state_action_values = (next_state_values * self.gamma) + reward_batch
+
+        # Compute Huber loss
+        loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+
+        # Optimize the model
+        self.optimizer.zero_grad()
+        loss.backward()
+        for param in self.policy_net.parameters():
+            param.grad.data.clamp_(-1, 1) # Gradient clipping
+        self.optimizer.step()
