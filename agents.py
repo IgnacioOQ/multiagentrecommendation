@@ -5,12 +5,16 @@ class BaseQLearningAgent:
     def __init__(
         self,
         n_actions,
+        learning_rate=0.1,
+        gamma=0.9,
         exploration_rate=1.0,
         exploration_decay=0.999,
         min_exploration_rate=0.001,
         strategy="egreedy",
     ):
         self.n_actions = n_actions
+        self.learning_rate = learning_rate
+        self.gamma = gamma
         self.exploration_rate = exploration_rate
         self.exploration_decay = exploration_decay
         self.min_exploration_rate = min_exploration_rate
@@ -56,21 +60,18 @@ class BaseQLearningAgent:
 
     def update(self, key, action, reward):
         self._ensure_key(key)
-        n = self.action_counts[key][action]
-        q = self.q_table[key][action]
 
-        if n == 0:
-            self.q_table[key][action] = reward
-        else:
-            self.q_table[key][action] = q + (reward - q) / (n + 1)
+        old_value = self.q_table[key][action]
+        temporal_difference = reward - old_value
+        new_value = old_value + self.learning_rate * temporal_difference
+        self.q_table[key][action] = new_value
 
         self.action_counts[key][action] += 1
 
-        if self.strategy == "egreedy":
-            self.exploration_rate = max(
-                self.min_exploration_rate,
-                self.exploration_rate * self.exploration_decay,
-            )
+        self.exploration_rate = max(
+            self.min_exploration_rate,
+            self.exploration_rate * self.exploration_decay,
+        )
 
 
 class RecommenderAgent(BaseQLearningAgent):
