@@ -11,3 +11,5 @@ nbconvert==7.16.6
 papermill==2.6.0
 statsmodels==0.14.5
 PyYAML==6.0.2
+ipywidgets==8.1.8
+torch==2.9.1

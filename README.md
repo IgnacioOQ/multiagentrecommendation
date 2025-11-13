@@ -1,40 +1,73 @@
-# Human-in-the-Loop Reinforcement Learning Simulation
+# Recommender-Recommended RL Simulation
 
-## Description
+This project simulates the dynamic interplay between a recommender system and a user, both modeled as reinforcement learning agents. It provides a flexible framework to explore how internal states and reward modulation can shape their learning and interaction over time.
 
-This project is a simulation environment designed to study the interactions between a recommender agent and a user agent in a reinforcement learning setting. The simulation allows for the exploration of how different reward modulation strategies can affect the learning process of the agents.
+## Core Concepts
 
-The core of the project is a `run_recommender_simulation` function that simulates the interaction between the two agents in a customizable environment. The simulation can be configured with different parameters, such as the number of recommendations, the number of contexts, the stationarity of the environment, and the type of reward modulation to be used.
+The simulation is built around two key agents:
 
-## Project Structure
+*   **Recommender Agent**: This agent learns to suggest items to the user. It receives a positive reward for an accepted recommendation and a negative one for a rejection. Its goal is to maximize accepted recommendations.
+*   **User Agent (RecommendedAgent)**: This agent learns to accept or reject the recommender's suggestions. It receives a reward from the environment based on the item it's offered. Its goal is to maximize its own reward.
 
-The project is organized into the following main files:
+This setup creates a human-in-the-loop system where the agents' decisions mutually influence each other's learning and behavior.
 
--   `agents.py`: Contains the implementation of the `BaseQLearningAgent`, `RecommenderAgent`, and `RecommendedAgent` classes. These agents use Q-learning to make decisions.
--   `environment.py`: Defines the `ExogenousRewardEnvironment` class, which represents the environment in which the agents interact.
--   `simulations.py`: Contains the main simulation logic, including the `run_recommender_simulation` function.
--   `utils.py`: Provides utility functions for plotting the results of the simulations.
--   `reward_modulators.py`: Contains different classes for modulating the rewards given to the agents, such as `MoodSwings`, `ReceptorModulator`, and `NoveltyModulator`.
--   `stationarity_analysis.py`: Includes functions for analyzing the stationarity of the reward signals.
--   `testing_*.ipynb`: A set of Jupyter notebooks for testing different aspects of the simulation environment.
+## Key Components
 
-## How to Run
+The project is organized into several key modules:
 
-To run the simulations and tests, you can execute the Python scripts converted from the Jupyter notebooks. For example, to run the tests in `testing_peaks.ipynb`, you can run the following commands:
+*   **`agents.py`**: Defines the `RecommenderAgent` and `RecommendedAgent`. Both are built on a `BaseQLearningAgent` and use Q-learning to adapt their strategies.
+*   **`environment.py`**: Creates a 2D reward landscape where the x-axis represents different contexts and the y-axis represents different recommendations. The value at each point in the landscape is the reward the user receives for accepting a recommendation in a given context.
+*   **`simulations.py`**: The core of the project, this module runs the simulation loop, manages the interaction between the agents, and collects data for analysis.
+*   **`reward_modulators.py`**: This is where the project's most unique features are implemented. These modulators can alter the user's perception of rewards based on different psychological and biological models:
+    *   **`MoodSwings`**: Simulates fluctuating moods that can unpredictably alter the perceived reward.
+    *   **`ReceptorModulator`**: Models receptor downregulation, where sensitivity to rewards decreases after repeated exposure.
+    *   **`NoveltyModulator`**: Adds a bonus for new or infrequent recommendations, encouraging exploration.
+    *   **`HomeostaticModulator`**: Aims to maintain an internal equilibrium by adjusting rewards to counteract large swings.
+
+## Getting Started
+
+To get started with the simulation, follow these steps:
+
+1.  **Clone the repository**:
+    ```bash
+    git clone <repository-url>
+    cd <repository-name>
+    ```
+2.  **Install dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+## Running the Simulations
+
+The project includes several Jupyter notebooks and Python scripts for running simulations and tests.
+
+### Testing the `ReceptorModulator`
+
+To test the behavior of the `ReceptorModulator`, you can run the `test_receptor_modulator.py` script:
 
 ```bash
-jupyter nbconvert --to script testing_peaks.ipynb
-python testing_peaks.py
+python test_receptor_modulator.py
 ```
 
-This will run the simulations defined in the notebook and generate plots to visualize the results.
+This will run a simulation and generate a plot (`receptor_modulator_test.png`) that visualizes how the modulator's sensitivity changes in response to different reward levels.
+
+### Using the Jupyter Notebooks
+
+The project also includes several Jupyter notebooks for more in-depth analysis:
+
+*   `testing_homeostasis.ipynb`
+*   `testing_peaks.ipynb`
+*   `testing_rows.ipynb`
+
+To run these, you'll need to have Jupyter Notebook installed (`pip install notebook`). Then, you can launch a notebook server from the project's root directory:
+
+```bash
+jupyter notebook
+```
+
+This will open a new tab in your browser where you can navigate to and run the notebooks.
 
 ## Dependencies
 
-The main dependencies for this project are listed in the `requirements.txt` file.
-
-To install the dependencies, run the following command:
-
-```bash
-pip install -r requirements.txt
-```
+All the necessary Python packages are listed in the `requirements.txt` file.
