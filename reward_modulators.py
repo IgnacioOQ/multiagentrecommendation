@@ -131,8 +131,6 @@ class ReceptorModulator:
 
         # Ensure sensitivity stays within bounds
         self.sensitivity = np.clip(self.sensitivity, self.min_sensitivity, self.max_sensitivity)
-
-
         
 class NoveltyModulator:
     def __init__(self, eta=1.0):
@@ -559,6 +557,7 @@ class TD_HomeostaticModulator(BaseQLearningAgent):
         pass
 
 
+
 # --- Replay Memory for DQN ---
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
@@ -585,9 +584,13 @@ class TD_DHR:
         self.history = deque([0] * history_length, maxlen=history_length)
         self.modulation_history = []
         
-        # This agent learns to control the modulation
+        # --- EXPLANATION: n_actions ---
+        # The agent's "action" is *which index* (from 0 to history_length-1)
+        # to pick from the `self.history` deque.
+        # It is learning: "In this state, which of my 5 past rewards
+        # is the best one to use as a modulation signal?"
         self.agent = BaseQLearningAgent(
-            n_actions=self.history_length,
+            n_actions=self.history_length, # So, n_actions IS history_length
             learning_rate=0.1,
             gamma=0.9,
             exploration_decay=0.9999,
@@ -609,11 +612,12 @@ class TD_DHR:
         state_key = int(H_T) # Discretize state for Q-table
 
         # 2. Homeostatic controller chooses an action (which past R to use for modulation)
-        # The action is an *index* into the history
+        # The action is an *index* into the history, e.g., action = 2
         action = self.agent.choose_action(state_key, step)
         
         # 3. Get modulation signal (M[T-lag])
-        # The action 'k' selects R[T-k] from history as the modulation signal
+        # We apply the action `k` by using it as an index on our history deque.
+        # e.g., if action = 2, M_T_minus_lag = self.history[2] (the 3rd oldest reward)
         M_T_minus_lag = self.history[action] 
 
         # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
@@ -627,17 +631,16 @@ class TD_DHR:
         next_state_key = int(H_T_plus_1)
         
         # 7. Calculate intrinsic reward for the *controller*
-        # The controller is rewarded for keeping the *next* state near the setpoint
-        intrinsic_reward = -abs(H_T_plus_1 - self.setpoint)
+        # The agent is rewarded based on how close its *output*
+        # (the modulated_reward) is to the setpoint.
+        intrinsic_reward = -abs(modulated_reward - self.setpoint)
+
 
         # 8. Update the homeostatic agent's Q-table
-        #    (S_T, A_T, R_{T+1}, S_{T+1})
-        # ---
-        # *** BUG FIX ***
-        # The original call was: self.agent.update(state_key, action, next_state_key, intrinsic_reward)
-        # This passed next_state as the reward and reward as the next_state.
-        # The correct order is (state, action, reward, next_state):
-        # ---
+        # --- EXPLANATION: Online Learning ---
+        # This is a classic "online" TD update. The agent learns from the
+        # (S, A, R, S') tuple *immediately* and then discards it.
+        # It does NOT use a replay memory.
         self.agent.update(state_key, action, intrinsic_reward, next_state_key)
 
         # 9. Store history for plotting
@@ -666,9 +669,7 @@ class TD_DHR:
         plt.figure(figsize=(12, 10))
         plt.subplot(3, 1, 1) # Changed to 3 plots
         plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward (R[T])", color="blue", alpha=0.7)
-        # --- FIX: Simplified plot label ---(This was in your file snippet)
         plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (R'[T])", color="green", linestyle='-')
-        # --- End Fix ---
         plt.axhline(self.setpoint, color="gray", linestyle="--", label="Setpoint")
         plt.ylabel("Reward")
         plt.legend()
@@ -682,10 +683,8 @@ class TD_DHR:
         plt.legend()
 
         plt.subplot(3, 1, 3) # New plot for Epsilon
-        # --- FIX: Plot 'epsilon' not 'step' vs 'step' ---
         if 'epsilon' in df.columns:
             plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
-        # --- End Fix ---
         plt.ylabel("Exploration Rate")
         plt.xlabel("Step")
         plt.grid(True)
@@ -702,6 +701,10 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(state_size, 64)
         self.layer2 = nn.Linear(64, 64)
+        # --- EXPLANATION: Output Layer ---
+        # The output layer has `action_size` nodes.
+        # Each node corresponds to the Q-value for one of the
+        # discrete "index" actions (e.g., Q(S, action=0), Q(S, action=1), ...)
         self.layer3 = nn.Linear(64, action_size)
 
     def forward(self, x):
@@ -723,6 +726,9 @@ class DQN_DHR(TD_DHR):
         self.step = 0
         
         self.state_size = 1  # State is just the mean H_T
+        # --- EXPLANATION: n_actions ---
+        # Same as TD_DHR: The action is *which index* (0 to history_length-1)
+        # to pick from the `self.history` deque.
         self.action_size = history_length
         self.gamma = gamma
         self.batch_size = batch_size
@@ -744,22 +750,21 @@ class DQN_DHR(TD_DHR):
     def choose_action(self, H_T, step):
         """ Choose action using DQN policy net and e-greedy """
         
-        # Epsilon decay
-        if step > 0: # Allow pre-training exploration to be controlled
+        if step > 0: 
             self.exploration_rate = max(self.min_exploration_rate, 
                                         self.exploration_rate * self.exploration_decay)
-        
-        epsilon = self.exploration_rate if step > 0 else 0.0 # Force greedy if step = -1
+        epsilon = self.exploration_rate if step > 0 else 0.0 
 
         if np.random.rand() < epsilon:
-            # Exploration
+            # Exploration: Pick a random *index*
             return torch.tensor([[random.randrange(self.action_size)]], 
                                 device=self.device, dtype=torch.long)
         else:
-            # Exploitation
+            # Exploitation:
             with torch.no_grad():
                 state_tensor = torch.tensor([H_T], device=self.device, dtype=torch.float32).unsqueeze(0)
-                # .max(1)[1] gets the *index* (the action) of the highest Q-value
+                # 1. policy_net(state_tensor) -> [Q(S,a=0), Q(S,a=1), ..., Q(S,a=4)]
+                # 2. .max(1)[1] -> gets the *index* (the action) of the highest Q-value
                 return self.policy_net(state_tensor).max(1)[1].view(1, 1)
 
     def modify_reward(self, exogenous_reward, step):
@@ -770,10 +775,13 @@ class DQN_DHR(TD_DHR):
         H_T = self._get_state()
 
         # 2. Homeostatic controller chooses an action (tensor)
+        # The action_tensor is a 2D tensor, e.g., tensor([[2]])
         action_tensor = self.choose_action(H_T, step)
-        action = action_tensor.item() # Convert to scalar
+        action = action_tensor.item() # Convert to scalar index, e.g., 2
         
         # 3. Get modulation signal (M[T-lag])
+        # We apply the action `k` by using it as an index on our history deque.
+        # e.g., if action = 2, M_T_minus_lag = self.history[2]
         M_T_minus_lag = self.history[action] 
 
         # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
@@ -786,10 +794,14 @@ class DQN_DHR(TD_DHR):
         H_T_plus_1 = self._get_state()
         
         # 7. Calculate intrinsic reward for the *controller*
-        intrinsic_reward = -abs(H_T_plus_1 - self.setpoint)
+        intrinsic_reward = -abs(modulated_reward - self.setpoint)
         reward_tensor = torch.tensor([intrinsic_reward], device=self.device)
         
         # 8. Store the transition in memory
+        # --- EXPLANATION: Replay Memory ---
+        # Unlike TD_DHR, we do NOT learn yet. We store the full
+        # (S, A, R, S') tuple (as tensors) in the ReplayMemory.
+        # The actual learning happens in self.optimize_model() on batches.
         state_tensor = torch.tensor([H_T], device=self.device, dtype=torch.float32).unsqueeze(0)
         next_state_tensor = torch.tensor([H_T_plus_1], device=self.device, dtype=torch.float32).unsqueeze(0)
         
@@ -823,15 +835,11 @@ class DQN_DHR(TD_DHR):
             return  # Not enough samples in memory yet
         
         transitions = self.memory.sample(self.batch_size)
-        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043)
         batch = Transition(*zip(*transitions))
 
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (A final state would be marked by next_state is None)
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                               batch.next_state)), device=self.device, dtype=torch.bool)
         
-        # We need to handle the fact that states are already tensors, so we concat
         non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
         
         state_batch = torch.cat(batch.state)
@@ -839,13 +847,13 @@ class DQN_DHR(TD_DHR):
         reward_batch = torch.cat(batch.reward)
 
         # Compute Q(S_t, A_t)
-        # These are the Q-values our policy net *thought* were good
-        # We .gather(1, action_batch) to pick the Q-value for the action we *took*
+        # .gather(1, action_batch) picks the Q-value for the action we *took*
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
         # Compute V(S_{t+1}) for all next states.
-        # This is where we use the target net
+        # Use target_net for stability
         next_state_values = torch.zeros(self.batch_size, device=self.device)
+        # .max(1)[0] gets the *value* of the best action in the next state
         next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
 
         # Compute the expected Q values (The "ground truth" from Bellman)
@@ -861,7 +869,11 @@ class DQN_DHR(TD_DHR):
         for param in self.policy_net.parameters():
             param.grad.data.clamp_(-1, 1) # Gradient clipping
         self.optimizer.step()
-        
+
+# ---
+# --- DYNAMIC SETPOINT (ALLOSTASIS) CONTROLLERS ---
+# ---
+
 class TD_DHR_D(TD_DHR):
     """
     A TD_DHR controller with a Dynamic Setpoint (Allostasis).
@@ -869,7 +881,7 @@ class TD_DHR_D(TD_DHR):
     breaches a top or bottom threshold.
     """
     def __init__(self, setpoint, lag=0, history_length=5,
-                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.01):
+                 top_threshold=50, bottom_threshold=-50, adjustment_factor=0.01):
         
         # Call parent __init__ with the initial setpoint
         super().__init__(setpoint=setpoint, lag=lag, history_length=history_length)
@@ -995,6 +1007,7 @@ class TD_DHR_D(TD_DHR):
         plt.tight_layout()
         plt.show()
 
+
 class DQN_DHR_D(DQN_DHR):
     """
     A DQN_DHR controller with a Dynamic Setpoint (Allostasis).
@@ -1002,7 +1015,7 @@ class DQN_DHR_D(DQN_DHR):
     def __init__(self, setpoint, lag=0, history_length=5, 
                  gamma=0.9, batch_size=128, replay_memory=10000, 
                  target_update=10, lr=1e-3,
-                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.01):
+                 top_threshold=50, bottom_threshold=-50, adjustment_factor=0.01):
         
         # Call parent __init__
         super().__init__(setpoint=setpoint, lag=lag, history_length=history_length,
