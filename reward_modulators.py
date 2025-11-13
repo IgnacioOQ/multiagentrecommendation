@@ -861,3 +861,281 @@ class DQN_DHR(TD_DHR):
         for param in self.policy_net.parameters():
             param.grad.data.clamp_(-1, 1) # Gradient clipping
         self.optimizer.step()
+        
+class TD_DHR_D(TD_DHR):
+    """
+    A TD_DHR controller with a Dynamic Setpoint (Allostasis).
+    The setpoint itself moves if the exogenous reward consistently
+    breaches a top or bottom threshold.
+    """
+    def __init__(self, setpoint, lag=0, history_length=5,
+                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.01):
+        
+        # Call parent __init__ with the initial setpoint
+        super().__init__(setpoint=setpoint, lag=lag, history_length=history_length)
+        
+        # Dynamic setpoint parameters
+        self.current_setpoint = setpoint
+        self.top_threshold = top_threshold
+        self.bottom_threshold = bottom_threshold
+        self.adjustment_factor = adjustment_factor # How fast the setpoint moves
+
+    def _update_dynamic_setpoint(self, exogenous_reward):
+        """
+        Adjusts the setpoint based on breaches of the thresholds.
+        This is a form of allostasis.
+        """
+        top_distance = exogenous_reward - self.top_threshold
+        if top_distance > 0:
+            # Reward is too high, pull the setpoint down
+            decrease_amount = top_distance * self.adjustment_factor
+            self.current_setpoint -= decrease_amount
+            
+        bottom_distance = self.bottom_threshold - exogenous_reward
+        if bottom_distance > 0:
+            # Reward is too low, push the setpoint up
+            increase_amount = bottom_distance * self.adjustment_factor
+            self.current_setpoint += increase_amount
+
+    def modify_reward(self, exogenous_reward, step):
+        """
+        Overrides the parent method to include dynamic setpoint logic.
+        """
+        self.step += 1
+        
+        # 1. Get current physiological state (H_T)
+        H_T = self._get_state()
+        state_key = int(H_T) # Discretize state for Q-table
+
+        # 2. Homeostatic controller chooses an action
+        action = self.agent.choose_action(state_key, step)
+        
+        # 3. Get modulation signal (M[T-lag])
+        M_T_minus_lag = self.history[action] 
+
+        # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
+        modulated_reward = exogenous_reward - M_T_minus_lag
+
+        # 5. Update history with the *new* exogenous reward
+        self.history.appendleft(exogenous_reward)
+
+        # 6. Get the *next* physiological state (H[T+1])
+        H_T_plus_1 = self._get_state()
+        next_state_key = int(H_T_plus_1)
+        
+        # --- NEW DYNAMIC LOGIC ---
+        # 7. Update the setpoint itself based on the exogenous reward
+        self._update_dynamic_setpoint(exogenous_reward)
+        # --- END NEW LOGIC ---
+
+        # 8. Calculate intrinsic reward for the *controller*
+        #    This now uses the *current* dynamic setpoint
+        intrinsic_reward = -abs(modulated_reward - self.current_setpoint)
+
+        # 9. Update the homeostatic agent's Q-table
+        self.agent.update(state_key, action, intrinsic_reward, next_state_key)
+
+        # 10. Store history for plotting
+        self.modulation_history.append({
+            "step": step,
+            "exogenous_reward": exogenous_reward,
+            "modulated_reward": modulated_reward,
+            "modulation": M_T_minus_lag,
+            "state_H_T": H_T,
+            "next_state_H_T+1": H_T_plus_1,
+            "intrinsic_reward": intrinsic_reward,
+            "action": action,
+            "epsilon": self.agent.exploration_rate,
+            "current_setpoint": self.current_setpoint # Track the setpoint
+        })
+        
+        return modulated_reward
+
+    def plot_modulation_trajectory(self, max_points=1000):
+        """
+        Overrides the parent plot to show the dynamic setpoint.
+        """
+        if not self.modulation_history:
+            print("No modulation history to plot.")
+            return
+        df = pd.DataFrame(self.modulation_history)
+        if max_points and len(df) > max_points:
+            df = df.iloc[-max_points:]
+
+        plt.figure(figsize=(12, 10))
+        plt.subplot(3, 1, 1)
+        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward (R[T])", color="blue", alpha=0.7)
+        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (R'[T])", color="green", linestyle='-')
+        
+        # Plot the dynamic setpoint
+        if "current_setpoint" in df.columns:
+             plt.plot(df["step"], df["current_setpoint"], label="Dynamic Setpoint", color="red", linestyle="--")
+        else:
+             plt.axhline(self.setpoint, color="gray", linestyle="--", label="Static Setpoint")
+
+        plt.ylabel("Reward")
+        plt.legend()
+        plt.grid(True)
+        plt.title(f"Homeostatic Control Trajectory ({type(self).__name__})")
+
+        plt.subplot(3, 1, 2)
+        plt.plot(df["step"], df["modulation"], label="Applied Modulation (M[T-lag])", color="purple")
+        plt.ylabel("Modulation")
+        plt.grid(True)
+        plt.legend()
+
+        plt.subplot(3, 1, 3)
+        if 'epsilon' in df.columns:
+            plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
+        plt.ylabel("Exploration Rate")
+        plt.xlabel("Step")
+        plt.grid(True)
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+class DQN_DHR_D(DQN_DHR):
+    """
+    A DQN_DHR controller with a Dynamic Setpoint (Allostasis).
+    """
+    def __init__(self, setpoint, lag=0, history_length=5, 
+                 gamma=0.9, batch_size=128, replay_memory=10000, 
+                 target_update=10, lr=1e-3,
+                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.01):
+        
+        # Call parent __init__
+        super().__init__(setpoint=setpoint, lag=lag, history_length=history_length,
+                         gamma=gamma, batch_size=batch_size, replay_memory=replay_memory,
+                         target_update=target_update, lr=lr)
+        
+        # Dynamic setpoint parameters
+        self.current_setpoint = setpoint
+        self.top_threshold = top_threshold
+        self.bottom_threshold = bottom_threshold
+        self.adjustment_factor = adjustment_factor
+
+    def _update_dynamic_setpoint(self, exogenous_reward):
+        """
+        Adjusts the setpoint based on breaches of the thresholds.
+        This is a form of allostasis.
+        """
+        top_distance = exogenous_reward - self.top_threshold
+        if top_distance > 0:
+            decrease_amount = top_distance * self.adjustment_factor
+            self.current_setpoint -= decrease_amount
+            
+        bottom_distance = self.bottom_threshold - exogenous_reward
+        if bottom_distance > 0:
+            increase_amount = bottom_distance * self.adjustment_factor
+            self.current_setpoint += increase_amount
+
+    def modify_reward(self, exogenous_reward, step):
+        """
+        This method overrides the parent DQN_DHR.modify_reward
+        """
+        self.step += 1
+        
+        # 1. Get current physiological state (H_T)
+        H_T = self._get_state()
+
+        # 2. Homeostatic controller chooses an action (tensor)
+        action_tensor = self.choose_action(H_T, step)
+        action = action_tensor.item() # Convert to scalar
+        
+        # 3. Get modulation signal (M[T-lag])
+        M_T_minus_lag = self.history[action] 
+
+        # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
+        modulated_reward = exogenous_reward - M_T_minus_lag
+
+        # 5. Update history with the *new* exogenous reward
+        self.history.appendleft(exogenous_reward)
+
+        # 6. Get the *next* physiological state (H[T+1])
+        H_T_plus_1 = self._get_state()
+        
+        # --- NEW DYNAMIC LOGIC ---
+        # 7. Update the setpoint itself based on the exogenous reward
+        self._update_dynamic_setpoint(exogenous_reward)
+        # --- END NEW LOGIC ---
+
+        # 8. Calculate intrinsic reward for the *controller*
+        #    This now uses the *current* dynamic setpoint
+        intrinsic_reward = -abs(modulated_reward - self.current_setpoint)
+        reward_tensor = torch.tensor([intrinsic_reward], device=self.device)
+        
+        # 9. Store the transition in memory
+        state_tensor = torch.tensor([H_T], device=self.device, dtype=torch.float32).unsqueeze(0)
+        next_state_tensor = torch.tensor([H_T_plus_1], device=self.device, dtype=torch.float32).unsqueeze(0)
+        
+        self.memory.push(state_tensor, action_tensor, next_state_tensor, reward_tensor)
+
+        # 10. Perform one step of the optimization (on the policy network)
+        if step > 0:
+            self.optimize_model()
+
+        # 11. Update target network
+        if step > 0 and step % self.target_update == 0:
+            self.target_net.load_state_dict(self.policy_net.state_dict())
+
+        # 12. Store history for plotting
+        self.modulation_history.append({
+            "step": step,
+            "exogenous_reward": exogenous_reward,
+            "modulated_reward": modulated_reward,
+            "modulation": M_T_minus_lag,
+            "state_H_T": H_T,
+            "next_state_H_T+1": H_T_plus_1,
+            "intrinsic_reward": intrinsic_reward,
+            "action": action,
+            "epsilon": self.exploration_rate if step > 0 else 0,
+            "current_setpoint": self.current_setpoint # Track the setpoint
+        })
+        
+        return modulated_reward
+
+    # We also need to override the plot function for the DQN-D class
+    def plot_modulation_trajectory(self, max_points=1000):
+        """
+        Overrides the parent plot to show the dynamic setpoint.
+        (This is a copy of the TD_DHR_D plot method)
+        """
+        if not self.modulation_history:
+            print("No modulation history to plot.")
+            return
+        df = pd.DataFrame(self.modulation_history)
+        if max_points and len(df) > max_points:
+            df = df.iloc[-max_points:]
+
+        plt.figure(figsize=(12, 10))
+        plt.subplot(3, 1, 1)
+        plt.plot(df["step"], df["exogenous_reward"], label="Exogenous Reward (R[T])", color="blue", alpha=0.7)
+        plt.plot(df["step"], df["modulated_reward"], label="Modulated Reward (R'[T])", color="green", linestyle='-')
+        
+        if "current_setpoint" in df.columns:
+             plt.plot(df["step"], df["current_setpoint"], label="Dynamic Setpoint", color="red", linestyle="--")
+        else:
+             plt.axhline(self.setpoint, color="gray", linestyle="--", label="Static Setpoint")
+
+        plt.ylabel("Reward")
+        plt.legend()
+        plt.grid(True)
+        plt.title(f"Homeostatic Control Trajectory ({type(self).__name__})")
+
+        plt.subplot(3, 1, 2)
+        plt.plot(df["step"], df["modulation"], label="Applied Modulation (M[T-lag])", color="purple")
+        plt.ylabel("Modulation")
+        plt.grid(True)
+        plt.legend()
+
+        plt.subplot(3, 1, 3)
+        if 'epsilon' in df.columns:
+            plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
+        plt.ylabel("Exploration Rate")
+        plt.xlabel("Step")
+        plt.grid(True)
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
