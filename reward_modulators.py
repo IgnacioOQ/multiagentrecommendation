@@ -658,6 +658,9 @@ class TD_DHR:
         
         return modulated_reward
 
+    def update_setpoint(self, new_setpoint):
+        self.setpoint = new_setpoint
+        
     def plot_modulation_trajectory(self, max_points=1000):
         if not self.modulation_history:
             print("No modulation history to plot.")
@@ -893,21 +896,38 @@ class TD_DHR_D(TD_DHR):
         self.adjustment_factor = adjustment_factor # How fast the setpoint moves
 
     def _update_dynamic_setpoint(self, exogenous_reward):
-        """
-        Adjusts the setpoint based on breaches of the thresholds.
-        This is a form of allostasis.
-        """
-        top_distance = exogenous_reward - self.top_threshold
-        if top_distance > 0:
-            # Reward is too high, pull the setpoint down
-            decrease_amount = top_distance * self.adjustment_factor
-            self.current_setpoint -= decrease_amount
+            """
+            Adjusts the setpoint based on breaches of the thresholds.
+            This is a form of allostasis.
+            """
+            setpoint_changed = False
+            top_distance = exogenous_reward - self.top_threshold
+            if top_distance > 0:
+                # Reward is too high, pull the setpoint down
+                decrease_amount = top_distance * self.adjustment_factor
+                self.current_setpoint -= decrease_amount
+                setpoint_changed = True # Mark that a change happened
+                
+            bottom_distance = self.bottom_threshold - exogenous_reward
+            if bottom_distance > 0:
+                # Reward is too low, push the setpoint up
+                increase_amount = bottom_distance * self.adjustment_factor
+                self.current_setpoint += increase_amount
+                setpoint_changed = True # Mark that a change happened
             
-        bottom_distance = self.bottom_threshold - exogenous_reward
-        if bottom_distance > 0:
-            # Reward is too low, push the setpoint up
-            increase_amount = bottom_distance * self.adjustment_factor
-            self.current_setpoint += increase_amount
+            # --- *** THE FIX *** ---
+            if setpoint_changed:
+                # The goal has moved! The agent's old policy is now stale.
+                # We must force the agent to re-explore to find the new
+                # optimal policy for the *new* setpoint.
+                # We bump epsilon to a "re-explore" value (e.g., 0.5)
+                # or its current value, whichever is higher.
+                new_epsilon = max(self.agent.exploration_rate, 0.5) 
+                self.agent.exploration_rate = new_epsilon
+                
+                # Update the parent's static setpoint for plotting consistency
+                self.setpoint = self.current_setpoint
+            # --- *** END FIX *** ---
 
     def modify_reward(self, exogenous_reward, step):
         """
@@ -1029,19 +1049,38 @@ class DQN_DHR_D(DQN_DHR):
         self.adjustment_factor = adjustment_factor
 
     def _update_dynamic_setpoint(self, exogenous_reward):
-        """
-        Adjusts the setpoint based on breaches of the thresholds.
-        This is a form of allostasis.
-        """
-        top_distance = exogenous_reward - self.top_threshold
-        if top_distance > 0:
-            decrease_amount = top_distance * self.adjustment_factor
-            self.current_setpoint -= decrease_amount
+            """
+            Adjusts the setpoint based on breaches of the thresholds.
+            This is a form of allostasis.
+            """
+            setpoint_changed = False
+            top_distance = exogenous_reward - self.top_threshold
+            if top_distance > 0:
+                # Reward is too high, pull the setpoint down
+                decrease_amount = top_distance * self.adjustment_factor
+                self.current_setpoint -= decrease_amount
+                setpoint_changed = True # Mark that a change happened
+                
+            bottom_distance = self.bottom_threshold - exogenous_reward
+            if bottom_distance > 0:
+                # Reward is too low, push the setpoint up
+                increase_amount = bottom_distance * self.adjustment_factor
+                self.current_setpoint += increase_amount
+                setpoint_changed = True # Mark that a change happened
             
-        bottom_distance = self.bottom_threshold - exogenous_reward
-        if bottom_distance > 0:
-            increase_amount = bottom_distance * self.adjustment_factor
-            self.current_setpoint += increase_amount
+            # --- *** THE FIX *** ---
+            if setpoint_changed:
+                # The goal has moved! The agent's old policy is now stale.
+                # We must force the agent to re-explore to find the new
+                # optimal policy for the *new* setpoint.
+                # We bump epsilon to a "re-explore" value (e.g., 0.5)
+                # or its current value, whichever is higher.
+                new_epsilon = max(self.agent.exploration_rate, 0.5) 
+                self.agent.exploration_rate = new_epsilon
+                
+                # Update the parent's static setpoint for plotting consistency
+                self.setpoint = self.current_setpoint
+            # --- *** END FIX *** ---
 
     def modify_reward(self, exogenous_reward, step):
         """
