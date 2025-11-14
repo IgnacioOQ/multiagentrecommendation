@@ -922,7 +922,7 @@ class TD_DHR_D(TD_DHR):
                 # optimal policy for the *new* setpoint.
                 # We bump epsilon to a "re-explore" value (e.g., 0.5)
                 # or its current value, whichever is higher.
-                new_epsilon = max(self.agent.exploration_rate, 0.5) 
+                new_epsilon = 1 #max(self.agent.exploration_rate, 0.5) 
                 self.agent.exploration_rate = new_epsilon
                 
                 # Update the parent's static setpoint for plotting consistency
@@ -962,7 +962,7 @@ class TD_DHR_D(TD_DHR):
 
         # 8. Calculate intrinsic reward for the *controller*
         #    This now uses the *current* dynamic setpoint
-        intrinsic_reward = -abs(modulated_reward - self.current_setpoint)
+        intrinsic_reward = -abs(modulated_reward - self.setpoint)
 
         # 9. Update the homeostatic agent's Q-table
         self.agent.update(state_key, action, intrinsic_reward, next_state_key)
@@ -1075,8 +1075,8 @@ class DQN_DHR_D(DQN_DHR):
                 # optimal policy for the *new* setpoint.
                 # We bump epsilon to a "re-explore" value (e.g., 0.5)
                 # or its current value, whichever is higher.
-                new_epsilon = max(self.agent.exploration_rate, 0.5) 
-                self.agent.exploration_rate = new_epsilon
+                new_epsilon = 1 # max(self.exploration_rate, 0.5) 
+                self.exploration_rate = new_epsilon
                 
                 # Update the parent's static setpoint for plotting consistency
                 self.setpoint = self.current_setpoint
@@ -1191,3 +1191,214 @@ class DQN_DHR_D(DQN_DHR):
 
         plt.tight_layout()
         plt.show()
+        
+class DQN_DHR_E(DQN_DHR):
+    """
+    An "Expanded" DQN_DHR controller.
+    Its action space is expanded to include two new actions:
+    k:   min(history) - expansion_amount
+    k+1: max(history) + expansion_amount
+    """
+    def __init__(self, setpoint, lag=0, history_length=5, 
+                 gamma=0.9, batch_size=128, replay_memory=10000, 
+                 target_update=10, lr=1e-3, expansion_amount=10.0):
+        
+        # Manually initialize all parameters from parent
+        self.setpoint = setpoint
+        self.lag = lag
+        self.history_length = history_length
+        self.history = deque([0] * history_length, maxlen=history_length)
+        self.modulation_history = []
+        self.step = 0
+        
+        self.state_size = 1  # State is just the mean H_T
+        self.gamma = gamma
+        self.batch_size = batch_size
+        self.target_update = target_update
+        self.exploration_rate = 1.0
+        self.exploration_decay = 0.9999
+        self.min_exploration_rate = 0.01
+        
+        self.expansion_amount = expansion_amount
+        
+        # --- KEY CHANGE ---
+        self.action_size = self.history_length + 2
+        # --- END KEY CHANGE ---
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        # Re-initialize networks with the new action_size
+        self.policy_net = DQN(self.state_size, self.action_size).to(self.device)
+        self.target_net = DQN(self.state_size, self.action_size).to(self.device)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval()  # Target network is only for inference
+
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
+        self.memory = ReplayMemory(replay_memory)
+
+    def modify_reward(self, exogenous_reward, step):
+        """
+        This method overrides the parent DQN_DHR.modify_reward
+        """
+        self.step += 1
+        
+        # 1. Get current physiological state (H_T)
+        H_T = self._get_state()
+
+        # 2. Homeostatic controller chooses an action (tensor)
+        # The action_tensor is a 2D tensor, e.g., tensor([[6]])
+        action_tensor = self.choose_action(H_T, step)
+        action = action_tensor.item() # Convert to scalar index, e.g., 6
+        
+        # --- KEY CHANGE: Map action to modulation signal ---
+        if 0 <= action < self.history_length:
+            # Standard history action
+            M_T_minus_lag = self.history[action]
+        elif action == self.history_length:
+            # New "smaller value" action
+            M_T_minus_lag = np.min(self.history) - self.expansion_amount
+        elif action == self.history_length + 1:
+            # New "greater value" action
+            M_T_minus_lag = np.max(self.history) + self.expansion_amount
+        else:
+            # Fallback (should not happen)
+            M_T_minus_lag = self.history[0]
+        # --- END KEY CHANGE ---
+
+        # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
+        modulated_reward = exogenous_reward - M_T_minus_lag
+
+        # 5. Update history with the *new* exogenous reward
+        self.history.appendleft(exogenous_reward)
+
+        # 6. Get the *next* physiological state (H[T+1])
+        H_T_plus_1 = self._get_state()
+        
+        # 7. Calculate intrinsic reward for the *controller*
+        intrinsic_reward = -abs(modulated_reward - self.setpoint)
+        reward_tensor = torch.tensor([intrinsic_reward], device=self.device)
+        
+        # 8. Store the transition in memory
+        state_tensor = torch.tensor([H_T], device=self.device, dtype=torch.float32).unsqueeze(0)
+        next_state_tensor = torch.tensor([H_T_plus_1], device=self.device, dtype=torch.float32).unsqueeze(0)
+        
+        self.memory.push(state_tensor, action_tensor, next_state_tensor, reward_tensor)
+
+        # 9. Perform one step of the optimization (on the policy network)
+        if step > 0: 
+            self.optimize_model()
+
+        # 10. Update target network
+        if step > 0 and step % self.target_update == 0:
+            self.target_net.load_state_dict(self.policy_net.state_dict())
+
+        # 11. Store history for plotting
+        self.modulation_history.append({
+            "step": step,
+            "exogenous_reward": exogenous_reward,
+            "modulated_reward": modulated_reward,
+            "modulation": M_T_minus_lag,
+            "state_H_T": H_T,
+            "next_state_H_T+1": H_T_plus_1,
+            "intrinsic_reward": intrinsic_reward,
+            "action": action,
+            "epsilon": self.exploration_rate if step > 0 else 0
+        })
+        
+        return modulated_reward
+
+class TD_DHR_E(TD_DHR):
+    """
+    An "Expanded" TD_DHR controller.
+    Its action space is not just indexes into history (0..k-1),
+    but is expanded to include two new actions:
+    k:   min(history) - expansion_amount
+    k+1: max(history) + expansion_amount
+    
+    This allows the agent to "invent" a modulation signal
+    that is not in its recent history.
+    """
+    def __init__(self, setpoint, lag=0, history_length=5, expansion_amount=10.0):
+        
+        # Manually initialize key parts from parent
+        self.setpoint = setpoint
+        self.lag = lag
+        self.history_length = history_length
+        self.history = deque([0] * history_length, maxlen=history_length)
+        self.modulation_history = []
+        self.step = 0
+        
+        self.expansion_amount = expansion_amount
+        
+        # --- KEY CHANGE ---
+        # The action space is now history_length + 2
+        new_n_actions = self.history_length + 2
+        # --- END KEY CHANGE ---
+
+        self.agent = BaseQLearningAgent(
+            n_actions=new_n_actions, # Pass new action space size
+            learning_rate=0.1,
+            gamma=0.9,
+            exploration_decay=0.9999,
+            min_exploration_rate=0.01
+        )
+
+    def modify_reward(self, exogenous_reward, step):
+        """
+        Overrides the parent method to include expanded action logic.
+        """
+        self.step += 1
+        
+        # 1. Get current physiological state (H_T)
+        H_T = self._get_state()
+        state_key = int(H_T) # Discretize state for Q-table
+
+        # 2. Homeostatic controller chooses an action
+        # Action is now an index from 0 to history_length + 1
+        action = self.agent.choose_action(state_key, step)
+        
+        # --- KEY CHANGE: Map action to modulation signal ---
+        if 0 <= action < self.history_length:
+            # Standard history action
+            M_T_minus_lag = self.history[action]
+        elif action == self.history_length:
+            # New "smaller value" action
+            M_T_minus_lag = np.min(self.history) - self.expansion_amount
+        elif action == self.history_length + 1:
+            # New "greater value" action
+            M_T_minus_lag = np.max(self.history) + self.expansion_amount
+        else:
+            # Fallback (should not happen)
+            M_T_minus_lag = self.history[0]
+        # --- END KEY CHANGE ---
+
+        # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
+        modulated_reward = exogenous_reward - M_T_minus_lag
+
+        # 5. Update history with the *new* exogenous reward
+        self.history.appendleft(exogenous_reward)
+
+        # 6. Get the *next* physiological state (H[T+1])
+        H_T_plus_1 = self._get_state()
+        next_state_key = int(H_T_plus_1)
+        
+        # 7. Calculate intrinsic reward for the *controller*
+        intrinsic_reward = -abs(modulated_reward - self.setpoint)
+
+        # 8. Update the homeostatic agent's Q-table
+        self.agent.update(state_key, action, intrinsic_reward, next_state_key)
+
+        # 9. Store history for plotting
+        self.modulation_history.append({
+            "step": step,
+            "exogenous_reward": exogenous_reward,
+            "modulated_reward": modulated_reward,
+            "modulation": M_T_minus_lag,
+            "state_H_T": H_T,
+            "next_state_H_T+1": H_T_plus_1,
+            "intrinsic_reward": intrinsic_reward,
+            "action": action,
+            "epsilon": self.agent.exploration_rate
+        })
+        
+        return modulated_reward
