@@ -884,13 +884,14 @@ class TD_DHR_D(TD_DHR):
     breaches a top or bottom threshold.
     """
     def __init__(self, setpoint, lag=0, history_length=5,
-                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.05):
+                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.01):
         
         # Call parent __init__ with the initial setpoint
         super().__init__(setpoint=setpoint, lag=lag, history_length=history_length)
         
         # Dynamic setpoint parameters
         self.current_setpoint = setpoint
+        self.setpoint = self.current_setpoint  # Initial static setpoint
         self.top_threshold = top_threshold
         self.bottom_threshold = bottom_threshold
         self.adjustment_factor = adjustment_factor # How fast the setpoint moves
@@ -962,7 +963,7 @@ class TD_DHR_D(TD_DHR):
 
         # 8. Calculate intrinsic reward for the *controller*
         #    This now uses the *current* dynamic setpoint
-        intrinsic_reward = -abs(modulated_reward - self.setpoint)
+        intrinsic_reward = -abs(modulated_reward - self.current_setpoint)
 
         # 9. Update the homeostatic agent's Q-table
         self.agent.update(state_key, action, intrinsic_reward, next_state_key)
@@ -1035,7 +1036,7 @@ class DQN_DHR_D(DQN_DHR):
     def __init__(self, setpoint, lag=0, history_length=5, 
                  gamma=0.9, batch_size=128, replay_memory=10000, 
                  target_update=10, lr=1e-3,
-                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.05):
+                 top_threshold=50, bottom_threshold=-70, adjustment_factor=0.01):
         
         # Call parent __init__
         super().__init__(setpoint=setpoint, lag=lag, history_length=history_length,
