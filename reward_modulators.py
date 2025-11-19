@@ -583,7 +583,7 @@ class TD_DHR:
         self.history_length = history_length
         self.history = deque([0] * history_length, maxlen=history_length)
         self.modulation_history = []
-        
+
         # --- EXPLANATION: n_actions ---
         # The agent's "action" is *which index* (from 0 to history_length-1)
         # to pick from the `self.history` deque.
@@ -591,7 +591,7 @@ class TD_DHR:
         # is the best one to use as a modulation signal?"
         self.agent = BaseQLearningAgent(
             n_actions=self.history_length, # So, n_actions IS history_length
-            learning_rate=0.1,
+            learning_rate=0.2,
             gamma=0.9,
             exploration_decay=0.9999,
             min_exploration_rate=0.01
@@ -635,7 +635,6 @@ class TD_DHR:
         # (the modulated_reward) is to the setpoint.
         intrinsic_reward = -abs(modulated_reward - self.setpoint)
 
-
         # 8. Update the homeostatic agent's Q-table
         # --- EXPLANATION: Online Learning ---
         # This is a classic "online" TD update. The agent learns from the
@@ -653,13 +652,14 @@ class TD_DHR:
             "next_state_H_T+1": H_T_plus_1,
             "intrinsic_reward": intrinsic_reward,
             "action": action,
-            "epsilon": self.agent.exploration_rate
+            "epsilon": self.agent.exploration_rate,
+            "actions":action
         })
         
         return modulated_reward
 
-    def update_setpoint(self, new_setpoint):
-        self.setpoint = new_setpoint
+    # def update_setpoint(self, new_setpoint):
+    #     self.setpoint = new_setpoint
         
     def plot_modulation_trajectory(self, max_points=1000):
         if not self.modulation_history:
@@ -687,7 +687,7 @@ class TD_DHR:
 
         # plt.subplot(3, 1, 3) # New plot for Epsilon
         # if 'epsilon' in df.columns:
-        #     plt.plot(df["step"], df["epsilon"], label="Epsilon", color="orange")
+        #     plt.plot(df["step"], df["action"], label="Action Index", color="orange")
         # plt.ylabel("Exploration Rate")
         # plt.xlabel("Step")
         # plt.grid(True)
@@ -891,7 +891,7 @@ class TD_DHR_D(TD_DHR):
         
         # Dynamic setpoint parameters
         self.current_setpoint = setpoint
-        self.setpoint = self.current_setpoint  # Initial static setpoint
+        # self.setpoint = self.current_setpoint  # Initial static setpoint
         self.top_threshold = top_threshold
         self.bottom_threshold = bottom_threshold
         self.adjustment_factor = adjustment_factor # How fast the setpoint moves
@@ -963,7 +963,7 @@ class TD_DHR_D(TD_DHR):
 
         # 8. Calculate intrinsic reward for the *controller*
         #    This now uses the *current* dynamic setpoint
-        intrinsic_reward = -abs(modulated_reward - self.current_setpoint)
+        intrinsic_reward = -abs(modulated_reward - self.setpoint)
 
         # 9. Update the homeostatic agent's Q-table
         self.agent.update(state_key, action, intrinsic_reward, next_state_key)
@@ -979,7 +979,7 @@ class TD_DHR_D(TD_DHR):
             "intrinsic_reward": intrinsic_reward,
             "action": action,
             "epsilon": self.agent.exploration_rate,
-            "current_setpoint": self.current_setpoint # Track the setpoint
+            "current_setpoint": self.setpoint # Track the setpoint
         })
         
         return modulated_reward
