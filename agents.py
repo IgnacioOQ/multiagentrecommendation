@@ -28,12 +28,12 @@ class BaseQLearningAgent:
             self.q_table[key] = np.zeros(self.n_actions)
             self.action_counts[key] = np.zeros(self.n_actions)
 
-    def choose_action(self, key):
+    def choose_action(self, key, step=0): # MODIFIED: Added step to allow disabling exploration
         self._ensure_key(key)
         self.time += 1
 
         if self.strategy == "egreedy":
-            return self._egreedy_choice(key)
+            return self._egreedy_choice(key, step) # MODIFIED: Pass step
         elif self.strategy == "ucb":
             return self._ucb_choice(key)
         elif self.strategy == "softmax":
@@ -41,8 +41,9 @@ class BaseQLearningAgent:
         else:
             raise ValueError(f"Unknown strategy: {self.strategy}")
 
-    def _egreedy_choice(self, key):
-        if random.uniform(0, 1) < self.exploration_rate:
+    def _egreedy_choice(self, key, step=0): # MODIFIED: Added step
+        # Only explore if not pre-training (step != -1)
+        if random.uniform(0, 1) < self.exploration_rate and step != -1:
             return random.randint(0, self.n_actions - 1)
         return np.argmax(self.q_table[key])
 
@@ -58,7 +59,7 @@ class BaseQLearningAgent:
         probs = softmax(scaled)
         return np.random.choice(self.n_actions, p=probs)
 
-    def update(self, key, action, reward):
+    def update(self, key, action, reward, step=None): # MODIFIED: Added step
         self._ensure_key(key)
 
         old_value = self.q_table[key][action]
@@ -68,10 +69,12 @@ class BaseQLearningAgent:
 
         self.action_counts[key][action] += 1
 
-        self.exploration_rate = max(
-            self.min_exploration_rate,
-            self.exploration_rate * self.exploration_decay,
-        )
+        # Only decay exploration if not pre-training
+        if step != -1:
+            self.exploration_rate = max(
+                self.min_exploration_rate,
+                self.exploration_rate * self.exploration_decay,
+            )
 
 
 class RecommenderAgent(BaseQLearningAgent):
