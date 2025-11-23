@@ -621,7 +621,8 @@ class TD_DHR:
         M_T_minus_lag = self.history[action] 
 
         # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
-        modulated_reward = exogenous_reward - M_T_minus_lag
+        # FIX: Added setpoint to shift the baseline from 0 to the desired setpoint
+        modulated_reward = exogenous_reward - M_T_minus_lag + self.setpoint
 
         # 5. Update history with the *new* exogenous reward
         self.history.appendleft(exogenous_reward)
@@ -788,7 +789,8 @@ class DQN_DHR(TD_DHR):
         M_T_minus_lag = self.history[action] 
 
         # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
-        modulated_reward = exogenous_reward - M_T_minus_lag
+        # FIX: Added setpoint to shift the baseline from 0 to the desired setpoint
+        modulated_reward = exogenous_reward - M_T_minus_lag + self.setpoint
 
         # 5. Update history with the *new* exogenous reward
         self.history.appendleft(exogenous_reward)
@@ -947,7 +949,8 @@ class TD_DHR_D(TD_DHR):
         M_T_minus_lag = self.history[action] 
 
         # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
-        modulated_reward = exogenous_reward - M_T_minus_lag
+        # FIX: Added setpoint to shift the baseline from 0 to the desired setpoint
+        modulated_reward = exogenous_reward - M_T_minus_lag + self.setpoint
 
         # 5. Update history with the *new* exogenous reward
         self.history.appendleft(exogenous_reward)
@@ -1100,7 +1103,8 @@ class DQN_DHR_D(DQN_DHR):
         M_T_minus_lag = self.history[action] 
 
         # 4. Calculate modulated reward (R'[T] = R[T] - M[T-lag])
-        modulated_reward = exogenous_reward - M_T_minus_lag
+        # FIX: Added setpoint to shift the baseline from 0 to the desired setpoint
+        modulated_reward = exogenous_reward - M_T_minus_lag + self.current_setpoint
 
         # 5. Update history with the *new* exogenous reward
         self.history.appendleft(exogenous_reward)
