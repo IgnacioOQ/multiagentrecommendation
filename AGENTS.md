@@ -63,18 +63,125 @@ If you want to teach an agent a new language (like JAX) or technique:
 
 ### Project Overview
 
+This project simulates a **multi-agent reinforcement learning system** modeling the dynamic interaction between a **recommender system** and a **user**, both implemented as Q-learning agents. The core research focus is exploring how **internal reward modulation** (inspired by biological and psychological models) shapes agent learning, decision-making, and long-term behavior in recommendation systems.
+
+**The Two Agents:**
+- **RecommenderAgent**: Learns to suggest items that maximize user acceptance. Receives +1 reward for accepted recommendations, -1 for rejections.
+- **RecommendedAgent (User)**: Learns to accept/reject recommendations to maximize personal reward from the environment. Can experience modulated rewards based on internal states.
+
+**Research Objectives:**
+- Investigate how reward modulation mechanisms (mood, tolerance, novelty-seeking, homeostasis) affect user learning
+- Explore multi-agent dynamics in human-in-the-loop recommendation systems
+- Model biologically-inspired internal states and their impact on decision-making
 
 ### Setup & Testing
 
+**Installation:**
+```bash
+pip install -r requirements.txt
+```
+
+**Running Tests:**
+```bash
+python test_receptor_modulator.py  # Tests receptor downregulation modulator
+```
+
+**Running Simulations:**
+Use the provided Jupyter notebooks for interactive experimentation:
+- `testing_homeostasis.ipynb` - Tests homeostatic reward modulators
+- `testing_peaks.ipynb` - Tests reward landscapes with multiple peaks
+- `testing_rows.ipynb` - Tests row-based reward landscapes
+
+**Basic Usage:**
+```python
+from simulations import run_recommender_simulation
+from agents import RecommenderAgent, RecommendedAgent
+from environment import ExogenousRewardEnvironment
+from reward_modulators import ReceptorModulator
+
+results = run_recommender_simulation(
+    recommender_agent_class=RecommenderAgent,
+    recommended_agent_class=RecommendedAgent,
+    environment_class=ExogenousRewardEnvironment,
+    modulator_class=ReceptorModulator,
+    n_steps=10000,
+    modulated=True
+)
+```
 
 ### Key Architecture & Logic
 
-#### 1. Core Logic 
+#### 1. Core Logic
 
+**Agent System (`agents.py`):**
+- `BaseQLearningAgent`: Foundation class implementing Q-learning with multiple exploration strategies (ε-greedy, UCB, softmax)
+- `RecommenderAgent`: Chooses recommendations (actions) based on context states to maximize acceptance rate
+- `RecommendedAgent`: Chooses accept/reject actions based on (context, recommendation) state pairs to maximize personal reward
+
+**Environment (`environment.py`):**
+- `ExogenousRewardEnvironment`: Creates a 2D reward landscape
+  - X-axis: Contexts (user states, typically 50 discrete values)
+  - Y-axis: Recommendations (items, typically 20 discrete values)
+  - Each cell contains the true reward value for accepting that recommendation in that context
+  - Supports Gaussian peaks (global max, local max) to create complex reward landscapes
+  - Dynamic context transitions: agent moves through context space over time
+  - Optional non-stationarity: reward landscape can shift during simulation
+
+**Simulation Loop (`simulations.py`):**
+1. Get current context from environment
+2. Recommender chooses a recommendation
+3. User decides to accept/reject
+4. If accepted: user receives environment reward (potentially modulated)
+5. If rejected: user receives 0 reward
+6. Recommender receives +1 (accept) or -1 (reject)
+7. Both agents update their Q-tables
+8. Environment transitions to new context
+9. Repeat for n_steps
+
+**Reward Modulators (`reward_modulators.py`):**
+
+The project's most unique contribution. These modulators alter the user's *perceived* reward based on internal states:
+
+- **MoodSwings**: Adds time-varying mood offset to rewards (models emotional fluctuations)
+- **ReceptorModulator**: Implements tolerance/sensitization
+  - Sensitivity decreases with repeated high rewards (downregulation)
+  - Sensitivity recovers during low reward periods (upregulation)
+  - Models biological receptor dynamics (e.g., dopamine tolerance)
+- **NoveltyModulator**: Adds bonus for infrequent (context, recommendation) pairs (models curiosity/exploration drive)
+- **HomeostaticModulator**: Q-learning-based controller that modulates rewards to maintain homeostatic setpoint
+- **TD_DHR / DQN_DHR**: Advanced homeostatic controllers using tabular Q-learning or deep Q-networks
+  - Learn to select modulation signals from reward history to minimize deviation from setpoint
+  - **_D variants**: Dynamic setpoint (allostasis) - setpoint adapts over time
+  - **_E variants**: Expanded action space - can generate novel modulation signals beyond history
 
 #### 2. Dependencies (`imports.py`)
-*   Centralizes imports for `pandas`, `yfinance`, `matplotlib`, `tqdm`, `requests`, and `bs4`.
+*   Centralizes imports for `numpy`, `pandas`, `matplotlib`, `scipy`, `statsmodels`, `torch`, `tqdm`, and `collections`.
+*   Provides common utilities used across all modules.
 
 ### Key Files and Directories
+
+**Core Python Modules:**
+- `agents.py` - Q-learning agent implementations (Recommender and User)
+- `environment.py` - 2D reward landscape and context dynamics
+- `simulations.py` - Main simulation runner with agent interaction loop
+- `reward_modulators.py` - Biological/psychological reward modulation mechanisms (1400+ lines)
+- `utils.py` - Visualization utilities for results analysis
+- `imports.py` - Centralized dependency imports
+- `stationarity_analysis.py` - Tools for analyzing time-series stationarity of agent behavior
+
+**Testing & Experimentation:**
+- `test_receptor_modulator.py` - Unit test for receptor downregulation
+- `testing_homeostasis.ipynb` - Interactive experiments with homeostatic modulators
+- `testing_peaks.ipynb` - Experiments with multi-peak reward landscapes
+- `testing_rows.ipynb` - Experiments with row-based reward structures
+
+**Configuration:**
+- `requirements.txt` - Python package dependencies
+- `.vscode/settings.json` - IDE configuration
+
+**Documentation:**
+- `README.md` - User-facing project documentation
+- `AGENTS.md` - AI assistant instructions and project context (this file)
+- `AGENTS_LOG.md` - Change history and intervention logs (if exists)
 
 
