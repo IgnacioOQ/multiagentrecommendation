@@ -62,41 +62,19 @@ If you want to teach an agent a new language (like JAX) or technique:
 ## LOCAL PROJECT DESCRIPTION
 
 ### Project Overview
-This project is a comprehensive Python toolkit for stock performance analysis, reporting, and daily tracking. It leverages `yfinance` to fetch market data and `matplotlib` for visualization, providing a suite of tools for investors to analyze portfolio performance and risk metrics.
+
 
 ### Setup & Testing
-*   **Install Dependencies:** `pip install pandas yfinance matplotlib tqdm requests beautifulsoup4`
-*   **Run Automation:** Execute `daily_download.ipynb` to download latest data and generate reports.
-*   **Run Analysis:** Use functions in `functions.py` or explore `example_analysis.ipynb`.
+
 
 ### Key Architecture & Logic
 
-#### 1. Core Logic (`functions.py`)
-*   **Data Fetching:** Uses `yfinance` to download historical stock data.
-*   **Metrics Calculation:**
-    *   **Performance:** Total Return, Annualized Return, Volatility, Sharpe Ratio, Max Drawdown.
-    *   **Valuation:** P/E Ratio, P/B Ratio, PEG Ratio, Dividend Yield, Market Cap.
-    *   **Weighted Metrics:** Calculates portfolio-level metrics weighted by Market Cap, Earnings, or Revenue.
-*   **Visualization:**
-    *   **Normalized Price Plots:** Compares stock performance starting from a common baseline (1.0).
-    *   **Daily % Change:** Visualizes volatility.
-    *   **Metric History:** Plots P/E ratios, Dividend Yields, and Market Cap over time.
+#### 1. Core Logic 
 
-#### 2. Automation (`daily_download.ipynb`)
-*   **Daily Workflow:** Designed to be run daily.
-*   **Functionality:**
-    *   Downloads latest prices for a user-defined watchlist.
-    *   Generates performance summaries for multiple timeframes (1W, 1M, 3M, YTD, 1Y).
-    *   Saves data to CSV files in `stock_data/`.
-    *   Produces a daily summary report with top/bottom performers and market breadth.
 
-#### 3. Dependencies (`imports.py`)
+#### 2. Dependencies (`imports.py`)
 *   Centralizes imports for `pandas`, `yfinance`, `matplotlib`, `tqdm`, `requests`, and `bs4`.
 
 ### Key Files and Directories
 
-*   **`functions.py`**: The core library containing all analysis, calculation, and plotting functions.
-*   **`daily_download.ipynb`**: The primary execution script for daily tracking and reporting.
-*   **`example_analysis.ipynb`**: Demonstrates how to use the various functions in `functions.py`.
-*   **`stock_data/`**: (Generated) Directory where daily prices and performance reports are saved.
-*   **`imports.py`**: Manages external library dependencies.
+
