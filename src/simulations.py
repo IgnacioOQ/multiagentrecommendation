@@ -1,7 +1,7 @@
-from imports import *
-from reward_modulators import *
-from agents import *
-from environment import ExogenousRewardEnvironment
+from .imports import *
+from .reward_modulators import *
+from .agents import *
+from .environment import ExogenousRewardEnvironment
 
 def run_recommender_simulation(
     recommender_agent_class,

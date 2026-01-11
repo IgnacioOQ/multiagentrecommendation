@@ -1,4 +1,4 @@
-from imports import *
+from .imports import *
 
 def adf_stationarity_test(series, name="Time Series"):
     """
