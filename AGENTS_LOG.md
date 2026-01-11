@@ -15,3 +15,11 @@
     *   Verified existing `test_receptor_modulator.py`.
     *   Executed Jupyter notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) to ensure no regressions.
     *   Updated `HOUSEKEEPING.md` with the dependency network and the latest test report.
+
+### Reorganization
+*   **Date:** 2024-05-22
+*   **Summary:** Reorganized project structure into standard Python layout.
+    *   Moved core library files (`agents.py`, `environment.py`, etc.) to `src/` directory.
+    *   Moved Jupyter notebooks to `notebooks/` directory.
+    *   Moved scripts/tests to `tests/`.
+    *   Updated imports in all files to use relative package imports (e.g., `from .agents import ...`) within `src/` and updated `sys.path` in tests/notebooks to find the modules.

@@ -2,7 +2,13 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from reward_modulators import ReceptorModulator
+import sys
+import os
+
+# Add parent directory to path to import modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.reward_modulators import ReceptorModulator
 from tqdm import trange
 
 def test_receptor_modulator_behavior(alpha=0.001, beta=0.01, desensitization_threshold=50):

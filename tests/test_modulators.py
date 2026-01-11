@@ -6,7 +6,7 @@ import os
 # Add parent directory to path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from reward_modulators import ReceptorModulator, HomeostaticModulator, TD_DHR, TD_DHR_D
+from src.reward_modulators import ReceptorModulator, HomeostaticModulator, TD_DHR, TD_DHR_D
 
 class TestModulators(unittest.TestCase):
 

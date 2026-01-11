@@ -6,7 +6,7 @@ import os
 # Add parent directory to path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agents import BaseQLearningAgent, RecommenderAgent, RecommendedAgent
+from src.agents import BaseQLearningAgent, RecommenderAgent, RecommendedAgent
 
 class TestAgents(unittest.TestCase):
     def test_base_agent_initialization(self):

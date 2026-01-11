@@ -6,7 +6,7 @@ import os
 # Add parent directory to path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from environment import ExogenousRewardEnvironment
+from src.environment import ExogenousRewardEnvironment
 
 class TestEnvironment(unittest.TestCase):
     def setUp(self):
