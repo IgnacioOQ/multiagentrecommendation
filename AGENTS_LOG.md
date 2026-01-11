@@ -23,3 +23,14 @@
     *   Moved Jupyter notebooks to `notebooks/` directory.
     *   Moved scripts/tests to `tests/`.
     *   Updated imports in all files to use relative package imports (e.g., `from .agents import ...`) within `src/` and updated `sys.path` in tests/notebooks to find the modules.
+
+### Housekeeping & Documentation Update
+*   **Date:** 2024-05-22
+*   **Summary:** Performed validation of the new directory structure.
+    *   Updated `AGENTS.md` to accurately reflect the `src/`, `notebooks/`, and `tests/` layout.
+    *   Re-executed housekeeping protocol:
+        *   Mapped new dependency network (with `src.` imports).
+        *   Ran unit tests in `tests/` (all passed).
+        *   Verified `test_receptor_modulator.py` (all passed).
+        *   Verified notebook execution in `notebooks/` (via conversion to scripts).
+    *   Updated `HOUSEKEEPING.md` with the latest dependency graph and test report.

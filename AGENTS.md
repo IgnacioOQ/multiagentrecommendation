@@ -68,28 +68,29 @@ If you want to teach an agent a new language (like JAX) or technique:
 *   **Installation:** `pip install -r requirements.txt`
 *   **Testing:**
     *   Unit tests should be placed in `tests/`.
-    *   Integration verification can be performed by running the provided Jupyter notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, etc.).
-    *   Sanity checks for specific components (like `ReceptorModulator`) are available as scripts (e.g., `test_receptor_modulator.py`).
+    *   Integration verification can be performed by running the provided Jupyter notebooks (`notebooks/testing_homeostasis.ipynb`, etc.).
+    *   Sanity checks for specific components (like `ReceptorModulator`) are available as scripts (e.g., `tests/test_receptor_modulator.py`).
 
 ### Key Architecture & Logic
 
-#### 1. Core Logic
-*   **`agents.py`**: Defines `BaseQLearningAgent` (standard Q-learning) and its subclasses `RecommenderAgent` (selects items) and `RecommendedAgent` (accepts/rejects items).
-*   **`environment.py`**: Defines `ExogenousRewardEnvironment`, a 2D grid of rewards with gaussian peaks representing user preferences across contexts. Supports non-stationarity (shifting landscapes).
-*   **`reward_modulators.py`**: The heart of the homeostatic logic. Contains:
+#### 1. Core Logic (located in `src/`)
+*   **`src/agents.py`**: Defines `BaseQLearningAgent` (standard Q-learning) and its subclasses `RecommenderAgent` (selects items) and `RecommendedAgent` (accepts/rejects items).
+*   **`src/environment.py`**: Defines `ExogenousRewardEnvironment`, a 2D grid of rewards with gaussian peaks representing user preferences across contexts. Supports non-stationarity (shifting landscapes).
+*   **`src/reward_modulators.py`**: The heart of the homeostatic logic. Contains:
     *   `ReceptorModulator`: Simulates receptor desensitization/downregulation.
     *   `HomeostaticModulator`: Maintains a reward setpoint via lagged modulation.
     *   `TD_DHR` / `DQN_DHR`: Uses Temporal Difference learning or Deep Q-Networks to learn the optimal modulation strategy to maintain homeostasis (Deep Homeostatic Reinforcement).
     *   `TD_DHR_D` / `DQN_DHR_D`: Adds Allostasis (Dynamic Setpoints).
-*   **`simulations.py`**: Orchestrates the interaction loop between agents, environment, and modulators.
+*   **`src/simulations.py`**: Orchestrates the interaction loop between agents, environment, and modulators.
 
-#### 2. Dependencies (`imports.py`)
+#### 2. Dependencies (`src/imports.py`)
 *   Centralizes imports for `pandas`, `yfinance`, `matplotlib`, `tqdm`, `requests`, `bs4`, `torch`, `numpy`, and `scipy`.
 
 ### Key Files and Directories
-*   `agents.py`: Q-learning agent implementations.
-*   `environment.py`: Environment simulation.
-*   `reward_modulators.py`: Logic for homeostatic and allostatic reward adjustment.
-*   `simulations.py`: Simulation runners.
-*   `tests/`: Directory for unit tests.
-*   `testing_*.ipynb`: Notebooks for visual verification and experiments.
+*   `src/`: Core Python package containing logic.
+    *   `agents.py`: Q-learning agent implementations.
+    *   `environment.py`: Environment simulation.
+    *   `reward_modulators.py`: Logic for homeostatic and allostatic reward adjustment.
+    *   `simulations.py`: Simulation runners.
+*   `notebooks/`: Jupyter notebooks for visual verification and experiments.
+*   `tests/`: Directory for unit tests and scripts.
