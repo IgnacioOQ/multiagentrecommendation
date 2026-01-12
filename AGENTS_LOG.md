@@ -34,3 +34,11 @@
         *   Verified `test_receptor_modulator.py` (all passed).
         *   Verified notebook execution in `notebooks/` (via conversion to scripts).
     *   Updated `HOUSEKEEPING.md` with the latest dependency graph and test report.
+
+### Verification & Housekeeping
+*   **Date:** 2024-05-22
+*   **Summary:** Executed full housekeeping protocol on `modulators_adjustments` branch.
+    *   Confirmed dependency network integrity in `src/`.
+    *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
+    *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
+    *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
