@@ -1,0 +1,38 @@
+# Agents Log
+
+## Intervention History
+
+### Housekeeping Report (Initial)
+**Date:** 
+**Summary:** Executed initial housekeeping protocol.
+**AI Assitant:**
+- **Dependency Network:** 
+- **Tests:** 
+
+### Bug Fix: Advanced Analysis (Shape Mismatch)
+**Date:** 2024-05-22
+**Summary:** Fixed RuntimeError in `advanced_experiment_interface.ipynb`.
+- **Issue:** `compute_policy_metrics` in `src/analysis.py` passed 1D inputs `(100, 1)` to agents expecting 2D inputs `(100, 2)`.
+- **Fix:** Created `src/advanced_analysis.py` with `compute_advanced_policy_metrics`.
+- **Details:** The new function constructs inputs as `[p, t]` with `t` fixed at 0 (default).
+- **Files Modified:** `src/advanced_simulation.py` updated to use the new analysis function.
+
+### Bug Fix: Notebook NameError
+**Date:** 2024-05-22
+**Summary:** Fixed NameError in `advanced_experiment_interface.ipynb`.
+- **Issue:** The variable `ep_id` was used in a print statement but was undefined in the new JSON saving block.
+- **Fix:** Removed the erroneous print statement and cleanup old comments. Validated that the correct logging uses `current_step_info['episode_count']`.
+
+### Project Reorganization
+**Date:** 2026-01-21
+**Summary:** Reorganized project into standard directory structure.
+- **Changes:**
+    - Created `src/` directory for Python source files: `agents.py`, `environment.py`, `simulations.py`, `reward_modulators.py`, `utils.py`, `stationarity_analysis.py`, `imports.py`
+    - Created `tests/` directory for test files: `test_receptor_modulator.py`
+    - Created `notebooks/` directory for Jupyter notebooks: `testing_peaks.ipynb`, `testing_homeostasis.ipynb`, `testing_rows.ipynb`
+    - Created `AI_AGENTS/` directory for specialized agent instructions: `MC_AGENT.md`
+    - Updated all imports to use `src.` prefix (e.g., `from src.imports import *`)
+    - Added `src/__init__.py` to make src a proper Python package
+    - Removed backup file `reward_modulators copy.py` and root `__pycache__/`
+    - Updated AGENTS.md with new directory structure documentation
+

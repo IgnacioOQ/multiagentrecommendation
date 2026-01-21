@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from reward_modulators import ReceptorModulator
+from src.reward_modulators import ReceptorModulator
 from tqdm import trange
 
 def test_receptor_modulator_behavior(alpha=0.001, beta=0.01, desensitization_threshold=50):

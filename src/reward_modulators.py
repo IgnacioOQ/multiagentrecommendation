@@ -1,5 +1,5 @@
-from imports import *
-from agents import BaseQLearningAgent
+from src.imports import *
+from src.agents import BaseQLearningAgent
 from tqdm import trange
 import torch
 import torch.nn as nn

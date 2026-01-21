@@ -1,4 +1,4 @@
-from imports import *
+from src.imports import *
 
 def plot_full_results(environment_state_space, average_reward_map, average_recommender_map):
     """

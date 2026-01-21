@@ -1,4 +1,4 @@
-from imports import *
+from src.imports import *
 
 class ExogenousRewardEnvironment:
     def __init__(self, n_recommendations=20, n_contexts=50):

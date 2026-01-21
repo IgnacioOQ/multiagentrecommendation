@@ -1,4 +1,4 @@
-from imports import *
+from src.imports import *
 
 
 class BaseQLearningAgent:
