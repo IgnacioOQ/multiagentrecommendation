@@ -2,6 +2,7 @@ from src.imports import *
 from src.reward_modulators import *
 from src.agents import *
 from src.environment import ExogenousRewardEnvironment
+from src.utils import extract_user_qvalues_from_agent
 
 def run_recommender_simulation(
     recommender_agent_class,
@@ -181,6 +182,11 @@ def run_recommender_simulation(
             title="Recommended Agent's Initial Q Landscape"
         )
 
+    # Capture initial user Q-values for later comparison
+    initial_user_qvalues = extract_user_qvalues_from_agent(
+        recommended_agent, n_contexts, n_recommendations
+    ).copy()
+
     for step in trange(n_steps, desc="Running Simulation"):
         context = environment.current_context
         recommendation = recommender_agent.act(context)
@@ -258,6 +264,11 @@ def run_recommender_simulation(
     recommender_agent.visualize_q_landscape(range(n_contexts),title='Recommender Agent Learned Rewards')
     recommended_agent.visualize_accept_q_landscape(range(n_contexts), range(n_recommendations), title='User Learned Rewards')
 
+    # Capture final user Q-values
+    final_user_qvalues = extract_user_qvalues_from_agent(
+        recommended_agent, n_contexts, n_recommendations
+    )
+
     return {
         "recommender_rewards": recommender_rewards,
         "recommended_rewards": recommended_rewards,
@@ -274,6 +285,10 @@ def run_recommender_simulation(
         "average_recommender_map": average_recommender_map,
         "accept_history": accept_history,
         "original_modulated_differences": original_modulated_differences,
-        "modulator": modulator  # <--- Add this
+        "modulator": modulator,
+        "initial_user_qvalues": initial_user_qvalues,
+        "final_user_qvalues": final_user_qvalues,
+        "n_contexts": n_contexts,
+        "n_recommendations": n_recommendations
     }
 
