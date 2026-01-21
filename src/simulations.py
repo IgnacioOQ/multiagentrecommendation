@@ -2,7 +2,7 @@ from src.imports import *
 from src.reward_modulators import *
 from src.agents import *
 from src.environment import ExogenousRewardEnvironment
-from src.utils import extract_user_qvalues_from_agent
+from src.plotting_utils import extract_user_qvalues_from_agent
 
 def run_recommender_simulation(
     recommender_agent_class,

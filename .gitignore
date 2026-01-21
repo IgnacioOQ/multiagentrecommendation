@@ -2,3 +2,4 @@ __pycache__/
 *.png
 homeostatic_modulator_test.png
 pid_controller_test.png
+data/interim/amazon_beauty.json
