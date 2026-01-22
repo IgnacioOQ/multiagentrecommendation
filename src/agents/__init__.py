@@ -15,7 +15,7 @@ from .base import BaseAgent
 from .q_learning import BaseQLearningAgent, RecommenderAgent, RecommendedAgent
 
 # Bandit agents
-from .bandit import RandomAgent, LinUCBAgent
+from .bandit import RandomAgent, LinUCBAgent, ContextualBanditAgent, ExplorationStrategy
 
 # Deep RL agents
 from .dqn import DQNAgent, ReplayBuffer
@@ -34,6 +34,8 @@ __all__ = [
     # Bandits
     "RandomAgent",
     "LinUCBAgent",
+    "ContextualBanditAgent",
+    "ExplorationStrategy",
     # Deep RL
     "DQNAgent",
     "ReplayBuffer",

@@ -19,15 +19,39 @@
 ### 1.2 Models Training Pipeline
 - [x] Create `src/models/train_cf.py` for SVD collaborative filtering
 - [x] Create `src/models/train_bandit.py` for LinUCB contextual bandits
-- [ ] Run and verify CF training on MovieLens data
-- [ ] Run and verify bandit training on Amazon Beauty data
-- [ ] Document baseline metrics (RMSE, MAE, mean rewards)
+- [x] Run and verify CF training on MovieLens data ✅
+- [x] Run and verify bandit training on Amazon Beauty data ✅
+- [x] Document baseline metrics (RMSE, MAE, mean rewards) ✅
+
+#### Baseline Metrics (2026-01-22)
+| Model | Dataset | Metric | Value |
+|-------|---------|--------|-------|
+| SVD (CF) | MovieLens 100K | RMSE | 0.8729 ± 0.0033 |
+| SVD (CF) | MovieLens 100K | MAE | 0.6712 ± 0.0033 |
+| LinUCB (Custom) | Amazon Beauty (top 50 items) | Mean Reward (Replay) | 0.9040 |
+| LinUCB (Custom) | Amazon Beauty (top 50 items) | Match Rate | 3.7% (427/11670) |
+
+**Notes:**
+- SVD model saved to `models/svd_model.pkl` (11MB)
+- LinUCB policy saved to `models/bandit_policy.npz` (custom implementation)
+- TF-IDF vectorizer saved to `models/tfidf_vectorizer.pkl`
+- LinUCB uses TF-IDF features (100 dims) from review text as context
+- Reward threshold for bandit: rating ≥ 4.0 → positive reward
+- Custom LinUCB uses Sherman-Morrison O(d²) updates (no external dependency)
 
 ### 1.3 Simulation Pipeline Verification
 - [x] Existing `src/simulations.py` with `run_recommender_simulation()`
 - [x] Existing `src/reward_modulators.py` with various modulator classes
 - [x] Run sanity check simulation with default parameters ✅
-- [ ] Verify visualization outputs (Q-landscapes, reward maps)
+- [x] Verify visualization outputs (Q-landscapes, reward maps) ✅
+
+**Verified Visualization Functions (2026-01-22):**
+- `plot_full_results()`: User and Recommender average reward heatmaps
+- `plot_reward_statistics()`: Rolling mean, variance, cumulative reward
+- `plot_initial_vs_final_qvalues()`: Q-value landscape evolution
+- `plot_reward_distribution_analysis()`: Reward histograms and spatial distribution
+- `plot_accept_reject_analysis()`: Accept/reject behavior over time
+- `plot_learning_summary()`: Comprehensive 3x3 grid summary figure
 
 ---
 

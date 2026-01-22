@@ -2,98 +2,151 @@ import os
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-from contextualbandits.online import LinUCB
-from contextualbandits.evaluation import evaluateRejectionSampling
-import joblib
+from tqdm import tqdm
 
-def train_bandit_model(data_dir="data"):
+from src.agents.bandit import LinUCBAgent
+
+
+def replay_evaluation(
+    agent: LinUCBAgent,
+    contexts: np.ndarray,
+    logged_actions: np.ndarray,
+    rewards: np.ndarray,
+    random_state: int = 42,
+) -> tuple[list[float], int]:
+    """Evaluate bandit policy using rejection sampling (replay method).
+
+    This method evaluates a bandit policy on historical log data by only
+    using samples where the agent's chosen action matches the logged action.
+
+    Args:
+        agent: LinUCB agent to evaluate.
+        contexts: Context vectors of shape (n_samples, context_dim).
+        logged_actions: Actions taken in the historical log.
+        rewards: Rewards received for the logged actions.
+        random_state: Random seed for reproducibility.
+
+    Returns:
+        Tuple of (cumulative_mean_rewards, n_matched) where cumulative_mean_rewards
+        is a list of running mean rewards and n_matched is the number of matched samples.
     """
-    Trains a Contextual Bandit model (LinUCB) on Amazon Beauty data.
+    np.random.seed(random_state)
+
+    n_samples = len(contexts)
+    cumulative_reward = 0.0
+    n_matched = 0
+    mean_rewards = []
+
+    for i in tqdm(range(n_samples), desc="Replay evaluation"):
+        context = contexts[i]
+        logged_action = logged_actions[i]
+        reward = rewards[i]
+
+        # Agent selects action based on current policy
+        selected_action = agent.select_action(context)
+
+        # Rejection sampling: only use if actions match
+        if selected_action == logged_action:
+            n_matched += 1
+            cumulative_reward += reward
+
+            # Update agent with this observation
+            agent.store(context, selected_action, reward, context, False)
+            agent.update()
+
+            mean_rewards.append(cumulative_reward / n_matched)
+
+    return mean_rewards, n_matched
+
+
+def train_bandit_model(data_dir: str = "data") -> dict:
+    """Train a Contextual Bandit model (LinUCB) on Amazon Beauty data.
+
+    Args:
+        data_dir: Base directory for data files.
+
+    Returns:
+        Dictionary containing training metrics.
     """
     data_path = os.path.join(data_dir, "interim", "amazon_beauty.json")
 
     if not os.path.exists(data_path):
-        # Try processing if not exists? Or just raise error.
-        # Let's check raw and process if needed.
-        # But for now assume process ran.
-        # If not found, try to run process_amazon?
-        # Let's rely on makefile order usually, but here raise error.
         from src.data.process import process_amazon
         process_amazon(save_dir=data_dir)
 
     print("Loading Amazon data...")
     df = pd.read_json(data_path, orient='records', lines=True)
 
-    # We need to simulate a bandit scenario.
-    # Context: Review text (TF-IDF)
-    # Action: Product (asin) - Too many actions?
-    # Usually for bandit simulation on this dataset, we might filter top categories or items.
-    # Given the description "text-based context", TF-IDF is correct.
-
-    # Simplified setup:
-    # We treat every review as a step.
-    # Context: User or Review Text? AGENTS.md says "TF-IDF vectors generated from review text."
-    # Wait, if context comes from review text, and we predict item? Or we predict rating?
-    # Contextual Bandits usually: Given context -> Select Action -> Get Reward.
-    # Here Action is likely the Item. Reward is the Rating.
-    # But unlimited items is hard.
-
-    # Let's follow a standard approach for this dataset if not specified.
-    # Or just implementation of LinUCB class usage.
-
-    # Limit to top items to make it feasible for LinUCB (matrix inversion).
+    # Limit to top items to make it feasible for LinUCB (matrix inversion)
     top_items = df['asin'].value_counts().head(50).index.tolist()
     df_filtered = df[df['asin'].isin(top_items)].copy()
 
     if len(df_filtered) < 100:
-        print("Not enough data after filtering. Using all data but limiting actions randomly?")
-        # Just use what we have.
+        print("Warning: Not enough data after filtering.")
 
-    print(f"Using {len(df_filtered)} interactions with {len(top_items)} unique items.")
+    n_arms = len(top_items)
+    print(f"Using {len(df_filtered)} interactions with {n_arms} unique items.")
 
-    # Create contexts
-    tfidf = TfidfVectorizer(max_features=100, stop_words='english')
+    # Create contexts using TF-IDF
+    context_dim = 100
+    tfidf = TfidfVectorizer(max_features=context_dim, stop_words='english')
     contexts = tfidf.fit_transform(df_filtered['reviewText'].fillna('')).toarray()
 
     # Actions (items) mapped to integers
     item_map = {item: i for i, item in enumerate(top_items)}
     actions = df_filtered['asin'].map(item_map).values
 
-    # Rewards: Binary? Or Rating?
-    # LinUCB often works with binary rewards or continuous.
-    # Let's use Rating directly or threshold.
-    # Threshold 4.0 -> 1, else 0.
+    # Binary rewards: rating >= 4.0 -> 1, else 0
     rewards = (df_filtered['overall'] >= 4.0).astype(int).values
 
-    # Train LinUCB
+    # Initialize custom LinUCB agent
     print("Training LinUCB...")
-    n_choices = len(top_items)
-    model = LinUCB(nchoices=n_choices, alpha=0.1, random_state=42)
+    agent = LinUCBAgent(
+        n_arms=n_arms,
+        context_dim=context_dim,
+        alpha=0.1,
+        regularization=1.0,
+        name="LinUCB_AmazonBeauty",
+    )
 
-    # Simulation: 'Replay' method (Rejection Sampling)
-    # Since we are using historical log data.
+    # Evaluate using rejection sampling (replay method)
     print("Evaluating with Rejection Sampling (Replay)...")
+    mean_rewards, n_matched = replay_evaluation(
+        agent, contexts, actions, rewards, random_state=42
+    )
 
-    # evaluateRejectionSampling expects:
-    # model, X, a, r, online=True/False?
-    # Actually it runs the simulation.
-
-    # Using the library's evaluation method
-    # It returns a list of mean rewards over time
-    mean_rewards = evaluateRejectionSampling(model, contexts, actions, rewards, online=True)
-
-    print(f"Mean Reward (Replay): {np.mean(mean_rewards):.4f}")
-
-    # Fit the model on all data for final artifact
-    model.fit(contexts, actions, rewards)
+    if n_matched > 0:
+        final_mean_reward = mean_rewards[-1] if mean_rewards else 0.0
+        print(f"Mean Reward (Replay): {final_mean_reward:.4f}")
+        print(f"Matched samples: {n_matched}/{len(contexts)} ({100*n_matched/len(contexts):.1f}%)")
+    else:
+        print("Warning: No matched samples in replay evaluation.")
+        final_mean_reward = 0.0
 
     # Save model
     models_dir = "models"
     os.makedirs(models_dir, exist_ok=True)
-    model_path = os.path.join(models_dir, "bandit_policy.pkl")
-    joblib.dump(model, model_path)
+    model_path = os.path.join(models_dir, "bandit_policy.npz")
+    agent.save(model_path)
+
+    # Also save the TF-IDF vectorizer and item mapping for inference
+    import joblib
+    vectorizer_path = os.path.join(models_dir, "tfidf_vectorizer.pkl")
+    item_map_path = os.path.join(models_dir, "item_map.pkl")
+    joblib.dump(tfidf, vectorizer_path)
+    joblib.dump(item_map, item_map_path)
 
     print(f"Bandit policy saved to {model_path}")
+    print(f"TF-IDF vectorizer saved to {vectorizer_path}")
+    print(f"Item mapping saved to {item_map_path}")
+
+    return {
+        "mean_reward": final_mean_reward,
+        "n_matched": n_matched,
+        "n_total": len(contexts),
+        "n_arms": n_arms,
+        "context_dim": context_dim,
+    }
 
 if __name__ == "__main__":
     train_bandit_model()

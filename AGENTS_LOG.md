@@ -36,3 +36,21 @@
     - Removed backup file `reward_modulators copy.py` and root `__pycache__/`
     - Updated AGENTS.md with new directory structure documentation
 
+### Model Training & Bandit Agent Enhancement
+**Date:** 2026-01-22
+**Summary:** Verified model training pipelines and added ContextualBanditAgent.
+- **Changes:**
+    - **CF Training Verified:** SVD model trained on MovieLens 100K (RMSE: 0.8729, MAE: 0.6712)
+    - **Bandit Training Updated:** Replaced `contextualbandits` library dependency with custom `LinUCBAgent` implementation
+    - **New Agent:** Added `ContextualBanditAgent` to `src/agents/bandit.py` supporting:
+        - Epsilon-greedy exploration (with decay)
+        - UCB (Upper Confidence Bound) exploration
+        - Softmax (Boltzmann) exploration
+    - **Files Modified:**
+        - `src/models/train_bandit.py`: Now uses custom `LinUCBAgent` with replay evaluation
+        - `src/agents/bandit.py`: Added `ContextualBanditAgent` and `ExplorationStrategy` enum
+        - `src/agents/__init__.py`: Exported new classes
+        - `requirements.txt`: Added `scikit-surprise` and `scikit-learn`
+    - **Visualization Verified:** All 6 plotting functions in `src/plotting_utils.py` tested and working
+    - **TODOS.md Updated:** Phase 1 now fully complete with documented baseline metrics
+
