@@ -1,4 +1,5 @@
 # Housekeeping Protocol
+- status: active
 
 1. Read the AGENTS.md file.
 2. Look at the dependency network of the project, namely which script refers to which one.
@@ -7,8 +8,10 @@
 5. Add that report to the AGENTS_LOG.md.
 
 # Current Project Housekeeping
+- status: active
 
 ## Dependency Network
+- status: active
 
 Based on current codebase analysis:
 - **Core Modules:** `src/imports.py`, `src/utils/`
@@ -19,6 +22,7 @@ Based on current codebase analysis:
 - **Tests:** `tests/` (depends on all above)
 
 ## Latest Report
+- status: active
 
 **Date:** 2026-02-18
 **Author:** Jules

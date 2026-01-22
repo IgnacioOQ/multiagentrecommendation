@@ -1,8 +1,10 @@
 # Recommender-Recommended RL Simulation
+- status: active
 
 This project simulates the dynamic interplay between a recommender system and a user, both modeled as reinforcement learning agents. It provides a flexible framework to explore how internal states and reward modulation can shape their learning and interaction over time.
 
 ## Core Concepts
+- status: active
 
 The simulation is built around two key agents:
 
@@ -12,6 +14,7 @@ The simulation is built around two key agents:
 This setup creates a human-in-the-loop system where the agents' decisions mutually influence each other's learning and behavior.
 
 ## Key Components
+- status: active
 
 The project is organized into several key modules:
 
@@ -25,6 +28,7 @@ The project is organized into several key modules:
     *   **`HomeostaticModulator`**: Aims to maintain an internal equilibrium by adjusting rewards to counteract large swings.
 
 ## Getting Started
+- status: active
 
 To get started with the simulation, follow these steps:
 
@@ -39,10 +43,12 @@ To get started with the simulation, follow these steps:
     ```
 
 ## Running the Simulations
+- status: active
 
 The project includes several Jupyter notebooks and Python scripts for running simulations and tests.
 
 ### Testing the `ReceptorModulator`
+- status: active
 
 To test the behavior of the `ReceptorModulator`, you can run the `test_receptor_modulator.py` script:
 
@@ -53,6 +59,7 @@ python test_receptor_modulator.py
 This will run a simulation and generate a plot (`receptor_modulator_test.png`) that visualizes how the modulator's sensitivity changes in response to different reward levels.
 
 ### Using the Jupyter Notebooks
+- status: active
 
 The project also includes several Jupyter notebooks for more in-depth analysis:
 
@@ -69,5 +76,6 @@ jupyter notebook
 This will open a new tab in your browser where you can navigate to and run the notebooks.
 
 ## Dependencies
+- status: active
 
 All the necessary Python packages are listed in the `requirements.txt` file.
