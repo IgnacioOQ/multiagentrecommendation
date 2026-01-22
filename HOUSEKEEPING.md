@@ -10,25 +10,24 @@
 
 ## Dependency Network
 
-Based on post-React integration analysis:
-- **Core Modules:**
-- **Advanced Modules:**
-- **Engine Module:**
-- **API Module:**
-- **Tests:**
-- **Notebooks:**
+Based on current codebase analysis:
+- **Core Modules:** `src/imports.py`, `src/utils/`
+- **Agents:** `src/agents/` (depends on Core)
+- **Environment:** `src/environment.py` (depends on Core)
+- **Simulation:** `src/simulations.py` (depends on Agents, Environment, Reward Modulators)
+- **Data:** `src/data/` (depends on `requests`, `pandas`, `tqdm`)
+- **Tests:** `tests/` (depends on all above)
 
 ## Latest Report
 
-**Execution Date:** 2026-01-19
+**Execution Date:** 2026-02-18
 
 **Test Results:**
-1. `tests/test_api.py`: **Passed** (17 tests).
-2. `tests/test_engine.py`: **Passed** (16 tests).
-3. `tests/test_mechanics.py`: **Passed** (4 tests).
-4. `tests/test_proxy_simulation.py`: **Passed** (1 test).
+1. `tests/test_download_mock.py`: **Passed** (2 tests). Verified mock downloading pipelines.
+2. `tests/test_integration.py`: **Passed** (1 test). Verified data processing integration.
+3. `tests/test_receptor_modulator.py`: **Not Run** (Script-based visual test, no assertions).
 
-**Total: 38 tests passed.**
+**Total: 3 tests passed.**
 
 **Summary:**
-All unit tests passed. `verify_logging.py` confirmed correct simulation flow and logging. Data persistence features have been integrated and verified locally. Project is stable.
+The directory structure in `AGENTS.md` has been updated to reflect the actual codebase. Unit tests for data downloading and integration passed after installing missing dependencies (`pandas`, `requests`, `torch`, etc.). The project environment is now stable.

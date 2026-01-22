@@ -54,3 +54,13 @@
     - **Visualization Verified:** All 6 plotting functions in `src/plotting_utils.py` tested and working
     - **TODOS.md Updated:** Phase 1 now fully complete with documented baseline metrics
 
+### Documentation Update & Housekeeping
+**Date:** 2026-02-18
+**Summary:** Updated AGENTS.md to match codebase and executed housekeeping protocol.
+- **Changes:**
+    - Updated `AGENTS.md` to remove incorrect "Monorepo", "Backend", "Frontend" references and correct the directory structure documentation (src/agents/ directory, specific test files).
+    - Executed `HOUSEKEEPING.md` protocol:
+        - Analyzed dependency network.
+        - Installed missing dependencies (`pandas`, `requests`, `torch`, `statsmodels`, etc.) to make tests pass.
+        - Ran unit tests: `test_download_mock.py` (Passed), `test_integration.py` (Passed).
+        - Updated `HOUSEKEEPING.md` with the latest report.
