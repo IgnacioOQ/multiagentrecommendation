@@ -3,7 +3,7 @@
 1. Read the AGENTS.md file.
 2. Look at the dependency network of the project, namely which script refers to which one.
 3. Proceed doing different sanity checks and unit tests from root scripts to leaves.
-4. Compile all errors and tests results into a report. And print that report in the Latest Report subsection below, overwriting previous reports.
+4. Compile all errors and tests results into a report. The report must include the following fields: **Date**, **Summary**, and **Author** (stating the name of the AI assistant). Print that report in the Latest Report subsection below, overwriting previous reports.
 5. Add that report to the AGENTS_LOG.md.
 
 # Current Project Housekeeping
@@ -20,7 +20,8 @@ Based on current codebase analysis:
 
 ## Latest Report
 
-**Execution Date:** 2026-02-18
+**Date:** 2026-02-18
+**Author:** Jules
 
 **Test Results:**
 1. `tests/test_download_mock.py`: **Passed** (2 tests). Verified mock downloading pipelines.
