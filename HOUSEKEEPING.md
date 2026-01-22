@@ -34,7 +34,7 @@ Based on the updated `src/` package structure:
 
 ## Latest Report
 
-**Execution Date:** 2024-05-22
+**Execution Date:** 2026-01-22
 
 **Test Results:**
 
@@ -44,10 +44,12 @@ Based on the updated `src/` package structure:
     - `test_modulators.py`: Verified `ReceptorModulator`, `HomeostaticModulator`, `TD_DHR`.
     - `test_receptor_modulator.py`: Executed successfully.
 
-*   **Notebook Verification (`notebooks/`):**
-    - `testing_homeostasis.ipynb`: Executed successfully. Verified PID and Homeostatic/Allostatic controllers.
-    - `testing_peaks.ipynb`: Executed successfully. Verified gaussian peak landscape simulation.
-    - `testing_rows.ipynb`: Executed successfully (with reduced steps for verification). Verified recommender simulation with various modulators (MoodSwings, Homeostatic, Receptor, Novelty). Generated 3 output figures confirming visualization logic.
+*   **Notebook Verification (`notebooks/`):** PASSED (using reduced steps for verification)
+    - `testing_homeostasis.ipynb`: Executed successfully.
+    - `testing_peaks.ipynb`: Executed successfully.
+    -   `testing_rows.ipynb`: Executed successfully (with reduced steps for verification).
 
 **Summary:**
-The project's dependency network is stable. All unit tests passed. Jupyter notebooks were successfully converted to scripts and executed, verifying the integration of agents, environment, and reward modulators. `plot_environment_vs_agent` was identified as missing in `testing_rows.py` (commented out to proceed).
+Housekeeping executed on `modulators_adjustments` branch. All unit tests passed. Jupyter notebooks were successfully verified with reduced steps (1000 steps) using a dedicated runner script `run_notebooks.py`. Dependency network remains stable.
+
+**Author:** Jules

@@ -42,3 +42,12 @@
     *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
     *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
     *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
+
+### Routine Housekeeping
+*   **Date:** 2026-01-22
+*   **Summary:** Executed routine housekeeping protocol.
+    *   Verified environment dependencies.
+    *   Ran unit tests (passed).
+    *   Ran standalone `test_receptor_modulator.py` (passed).
+    *   Verified notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) using `run_notebooks.py` with reduced step counts (passed).
+    *   Updated `HOUSEKEEPING.md` with latest report.
