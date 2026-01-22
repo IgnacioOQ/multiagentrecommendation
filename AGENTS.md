@@ -54,44 +54,42 @@ If you want to teach an agent a new language (like JAX) or technique:
 ## LOCAL PROJECT DESCRIPTION
 
 ### Project Overview
+The project is a "Homeostatic Reinforcement Learning" simulation framework modeling the interaction between a recommender agent and a user agent using Q-learning.
 
 ### Setup & Testing
-*   **Install Dependencies:**
-*   **Run Backend:** 
-*   **Run Frontend:** 
-*   **Run Tests:** 
+*   **Install Dependencies:** `pip install -r requirements.txt`
+*   **Run Tests:** `python -m unittest discover tests`
 
 ### Key Architecture & Logic
 
-#### 1. Architecture (Monorepo)
-*   **Backend (`backend/`)**: Python/FastAPI application handling all simulation logic, agent training, and state management.
-*   **Frontend (`frontend/`)**: React/Vite application for the user interface, communicating with backend via REST API.
+#### 1. Agents
+*   **`src/environment.py`**: The environment logic (p generation, reward calculation).
+*   **`src/agents/`**: Package containing Q-Learning agent implementations (e.g., `q_learning.py`, `dqn.py`, `ppo.py`).
 
-#### 2. Agents
-*   **`backend/environment.py`**: The environment logic (p generation, reward calculation).
-*   **`backend/agents.py`**: The Deep Q-Learning (DQN) agent implementation using PyTorch.
-
-#### 3. Simulation Loop (`backend/simulation.py`)
+#### 2. Simulation Loop (`src/simulations.py`)
 *   **Step:**
     1.  Environment generates p.
     2.  Agents observe p and output actions (Recommend/Not Recommend).
-    3.  Human (via React Interface) observes Agent actions and selects one.
-    4.  Environment calculates outcome (Coin flip) and rewards.
-    5.  Agents update their replay buffers and perform a training step.
+    3.  User Agent (RecommendedAgent) observes Recommender actions and accepts/rejects.
+    4.  Environment calculates outcome and rewards.
+    5.  Agents update their Q-values.
 
 ### Key Files and Directories
 
 #### Directory Structure
 *   `src/`: Contains the core Python modules.
-    *   `agents.py`: Q-Learning Agent classes (BaseQLearningAgent, RecommenderAgent, RecommendedAgent).
+    *   `agents/`: Q-Learning Agent classes (BaseQLearningAgent, RecommenderAgent, RecommendedAgent in `q_learning.py`).
+    *   `utils/`: Utility functions (e.g., `math_ops.py`).
     *   `environment.py`: ExogenousRewardEnvironment class.
     *   `simulations.py`: Main simulation runner.
     *   `reward_modulators.py`: Reward modulation classes (MoodSwings, ReceptorModulator, etc.).
-    *   `utils.py`: Plotting and utility functions.
+    *   `plotting_utils.py`: Plotting functions.
     *   `stationarity_analysis.py`: Statistical tests for time series stationarity.
     *   `imports.py`: Common imports shared across modules.
 *   `tests/`: Contains unit tests.
     *   `test_receptor_modulator.py`: Tests for reward modulator behavior.
+    *   `test_integration.py`: Integration tests.
+    *   `test_download_mock.py`: Mock download tests.
 *   `notebooks/`: Contains Jupyter notebooks for visualization and experimentation.
     *   `testing_peaks.ipynb`: Peak analysis experiments.
     *   `testing_homeostasis.ipynb`: Homeostasis behavior tests.
@@ -100,7 +98,7 @@ If you want to teach an agent a new language (like JAX) or technique:
     *   `MC_AGENT.md`: Markov Chain Analysis Agent instructions.
 
 #### File Dependencies & Logic
-`src/simulations.py` depends on `src/agents.py`, `src/environment.py`, and `src/reward_modulators.py`.
+`src/simulations.py` depends on `src/agents/`, `src/environment.py`, and `src/reward_modulators.py`.
 All source files import from `src/imports.py` for common dependencies.
 
 **Implementation:**
