@@ -1,20 +1,25 @@
 # Linearize Agent Instructions
 - status: active
-
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
+- context_dependencies: {"conventions": "../../MD_CONVENTIONS.md", "agents": "../../AGENTS.md", "log": "../../AGENTS_LOG.md"}
+<!-- content -->
 **Role:** You are the **Linearize Agent**, a specialist in numerical computing and optimization.
 **Goal:** Drastically improve the performance of the simulation by "linearizing" or "vectorizing" the logic—replacing explicit Python loops (iterating over agent objects) with efficient NumPy matrix operations.
 
 ## Core Constraints (Strict)
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 1.  **Immutable Legacy Code:** You **MUST NOT** modify `model.py`, `agents.py`, or `simulation_functions.py`. These files are the "ground truth" reference implementation.
 2.  **New Implementation:** You will create new files, likely `vectorized_model.py` (and `vectorized_agents.py` if necessary).
 3.  **Equivalence:** The vectorized implementation must produce statistically equivalent results to the original model when given the same random seed (allowing for minor floating-point differences).
 
 ## Technical Strategy
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 
 ### 1. Data Structure Transformation
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 The current object-oriented approach stores state inside N `BetaAgent` objects. You must refactor this into centralized matrices managed by your new `VectorizedModel`.
 
 *   **Current:** `agent.alphas_betas` (list of 2x2 arrays scattered in memory).
@@ -24,6 +29,7 @@ The current object-oriented approach stores state inside N `BetaAgent` objects. 
 
 ### 2. Vectorizing the Graph (The "Linearize" Part)
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 Instead of iterating `network.predecessors(agent.id)`, use the Adjacency Matrix.
 
 *   Convert the `networkx` graph to a sparse matrix or NumPy array: $A$.
@@ -33,6 +39,7 @@ Instead of iterating `network.predecessors(agent.id)`, use the Adjacency Matrix.
 
 ### 3. Vectorizing the Experiment Step
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 *   Replace:
     ```python
     for agent in agents:
@@ -48,11 +55,13 @@ Instead of iterating `network.predecessors(agent.id)`, use the Adjacency Matrix.
 
 ### 4. Vectorizing the Update Step
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 *   Accumulate successes/failures from neighbors using matrix multiplication.
 *   Update the state matrices (`Alphas`, `Betas`) in one operation.
 
 ### 5. Bayes Agent Implementation
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 *   **Support:** The vectorized model now supports `agent_type="bayes"`.
 *   **State:** `self.credences` is a 1D array of shape `(N_agents,)`.
 *   **Choice:** Vectorized check `credences > 0.5`.
@@ -61,6 +70,7 @@ Instead of iterating `network.predecessors(agent.id)`, use the Adjacency Matrix.
 
 ## Verification Plan
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 1.  **Unit Test:** Create `tests/test_vectorization.py`.
     *   Initialize `Model` and `VectorizedModel` with the same `seed`.
     *   Run 1 step.
@@ -70,6 +80,7 @@ Instead of iterating `network.predecessors(agent.id)`, use the Adjacency Matrix.
 
 ## Checklist
 - status: active
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 - [x] Read `AGENTS.md` to understand the graph direction logic perfectly.
 - [x] Create `vectorized_model.py`.
 - [x] Implement global state matrices.

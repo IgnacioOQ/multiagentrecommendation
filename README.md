@@ -1,6 +1,7 @@
 # Recommender-Recommended RL Simulation
 - status: active
 - type: guideline
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}
 <!-- content -->
 This project simulates the dynamic interplay between a recommender system and a user, both modeled as reinforcement learning agents. It provides a flexible framework to explore how internal states and reward modulation can shape their learning and interaction over time.
 

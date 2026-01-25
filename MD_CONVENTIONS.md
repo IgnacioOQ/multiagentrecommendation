@@ -1,7 +1,7 @@
 # Markdown-YAML Hybrid Schema Conventions
 - status: active
 - type: guideline
-- context_dependencies: {"conventions": "../../MD_CONVENTIONS.md"}
+
 <!-- content -->
 
 This document defines the strict conventions for the Markdown-YAML Hybrid Schema used in this project for hierarchical task coordination and agentic planning.

@@ -1,7 +1,7 @@
 # TODOS: Recommender Systems & Learning Dynamics Study Plan
 - status: active
 - type: task
-- context_dependencies: {"conventions": "../../MD_CONVENTIONS.md", "master_plan": "../../MASTER_PLAN.md"}
+- context_dependencies: {"conventions": "../MD_CONVENTIONS.md"}
 <!-- content -->
 
 > **Main Research Questions:**

@@ -1,6 +1,7 @@
 # Housekeeping Protocol
 - status: active
 - type: recurring
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}
 <!-- content -->
 1. Read the AGENTS.md file.
 2. Look at the dependency network of the project, namely which script refers to which one.

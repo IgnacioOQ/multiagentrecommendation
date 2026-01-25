@@ -1,6 +1,7 @@
 # AGENTS.md
 - status: active
 - type: guideline
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "log": "AGENTS_LOG.md", "housekeeping": "HOUSEKEEPING.md"}
 <!-- content -->
 
 ## SHORT ADVICE

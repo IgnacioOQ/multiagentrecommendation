@@ -1,6 +1,7 @@
 # Agents Log
 - status: active
 - type: log
+- context_dependencies: {"conventions": "MD_CONVENTIONS.md"}
 <!-- content -->
 
 ## Intervention History
