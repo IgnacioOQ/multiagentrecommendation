@@ -1,924 +1,448 @@
-# Master Plan: Intelligent Control SaaS
+# Master Plan: Recommender-Recommended RL Simulation
 - status: active
 - type: plan
-- id: master_plan.saas
-- owner: product-manager
+- id: master_plan.recsys
+- owner: ignacio
 - priority: critical
 - context_dependencies: {"manager": "../AI_AGENTS/MANAGER_AGENT.md", "conventions": "../MD_CONVENTIONS.md"}
-- last_checked: 2026-01-23T15:14:25+01:00
 <!-- content -->
-This document serves as the central strategic plan for the **Intelligent Control & Analysis Platform**. It is a dual-engine AI system functioning as both a **Business Analyst** and an **Autonomous Operator** for SMBs and industrial clients. It combines LLM reasoning (Analysis) with RL control (Optimization).
+This project simulates the dynamic interplay between a recommender system and a user, both modeled as reinforcement learning agents. It provides a flexible framework to explore how internal states and reward modulation can shape their learning and interaction over time.
 
-## Executive Summary
-- status: done
+## Core Concepts
+- status: active
 - type: context
-- id: product.saas.summary
-- last_checked: 2026-01-23T13:47:07+01:00
+- id: master_plan.recsys.concepts
 <!-- content -->
-**The Vision**: To empower every SMB with a Fortune 500-grade Data Science & Operations team—instantly. We bridge the gap between raw data and profitable action by combining natural language intuition with rigorous mathematical implementation.
+The simulation is built around two key agents:
+*   **Recommender Agent**: Learns to suggest items to the user. Goal: maximize accepted recommendations.
+*   **User Agent (RecommendedAgent)**: Learns to accept or reject suggestions. Goal: maximize its own modulated reward.
 
-**The Problem**: Small and mid-sized businesses (SMBs) across Retail and Logistics are drowning in spreadsheets. They face complex inventory dilemmas and operational inefficiencies but cannot afford a dedicated Data Science team. They operate on "gut feeling" rather than optimal control.
+## Key Components
+- status: active
+- type: context
+- id: master_plan.recsys.components
+<!-- content -->
+*   **`agents.py`**: Q-Learning agents (Recommender & Recommended).
+*   **`environment.py`**: 2D reward landscape (Context x Recommendation).
+*   **`simulations.py`**: Core simulation runner.
+*   **`reward_modulators.py`**: Psychological models (MoodSwings, ReceptorModulator, NoveltyModulator, HomeostaticModulator).
 
-**The Solution**: An **Intelligent Control SaaS** that functions as a dual-engine AI partner:
-1.  **The "Virtual Chief Analyst" (Understanding)**: A Code Interpreter agent that turns "Why are sales down?" into instant, visualized, statistical truth—not just text summaries.
-2.  **The "Autonomous Operator" (Action)**: An RL-driven Controller that turns "Optimize my stock" into precise, executed actions, solving complex math (like the Newsvendor problem) to maximize cash flow and minimize waste.
-
-**Market Value**:
-*   **Democratization**: Access to advanced analytics (Time-series forecasting, Hypothesis testing) via a simple chat interface.
-*   **Operational Excellence**: Transitioning clients from *reactive* fire-fighting to *proactive*, mathematically optimal inventory management.
-*   **Hybrid Architecture**: A privacy-conscious Local Nexus for daily work, connected to a scalable Cloud Brain for heavy computation.
-
-## Technical Architecture
+## Project Roadmap
 - status: active
 - type: plan
-- id: product.saas.arch
-- last_checked: 2026-01-23T13:47:07+01:00
+- id: master_plan.recsys.roadmap
 <!-- content -->
-The system separates Analytical Queries (Code Execution) from Control Tasks (Model Inference).
+<- context_dependencies: {conventions: ../MD_CONVENTIONS.md, agents: ../AGENTS.md}' AI_AGENTS/MC_AGENT.md AI_AGENTS/RECSYS_AGENT.md AI_AGENTS/LINEARIZE_AGENT.md content -->
 
-### Core Components
+### Phase 1: Foundation & Infrastructure ✅ (Partially Complete)
 - status: active
-- type: context
-- id: product.saas.arch.components
-- last_checked: 2026-01-23T13:47:07+01:00
 <!-- content -->
 
-#### Chatbot Assistant App
+#### 1.1 Data Pipeline Setup
 - status: active
-- type: context
-- id: product.saas.arch.components.chatbot
-- last_checked: 2026-01-23T19:47:31+01:00
 <!-- content -->
-Serves as the primary interface for users, functioning simultaneously as a mechanism for interaction and a local data warehouse. It facilitates data collection and user intent capture.
+- [x] Create `src/data/download.py` with `MovieLensPipeline` and `AmazonBeautyPipeline`
+- [x] Create `src/data/process.py` for data transformation
+- [x] Add unit tests (`tests/test_download_mock.py`)
+- [x] Add integration tests (`tests/test_integration.py`)
+- [x] Verify full pipeline execution: `python -m src.data.process` ✅ (100K+ MovieLens ratings, 198K+ Amazon reviews)
 
-#### Internal Ecosystem of AI-Assistants
+#### 1.2 Models Training Pipeline
 - status: active
-- type: context
-- id: product.saas.arch.components.ecosystem
-- last_checked: 2026-01-23T19:47:31+01:00
 <!-- content -->
-A background orchestration layer where multiple specialized AI agents collaborate. These agents are internal-only and handle specific sub-tasks to ensure seamless system operation.
+- [x] Create `src/models/train_cf.py` for SVD collaborative filtering
+- [x] Create `src/models/train_bandit.py` for LinUCB contextual bandits
+- [x] Run and verify CF training on MovieLens data ✅
+- [x] Run and verify bandit training on Amazon Beauty data ✅
+- [x] Document baseline metrics (RMSE, MAE, mean rewards) ✅
 
-#### Cloud Infrastructure (BigQuery & Compute)
+##### Baseline Metrics (2026-01-22)
 - status: active
-- type: context
-- id: product.saas.arch.components.cloud
-- last_checked: 2026-01-23T19:47:31+01:00
 <!-- content -->
-The scalable backbone of the platform. It includes **Google BigQuery** for massive data warehousing and **Google Cloud Compute** for performant processing, ensuring reliability and speed.
+| Model | Dataset | Metric | Value |
+|-------|---------|--------|-------|
+| SVD (CF) | MovieLens 100K | RMSE | 0.8729 ± 0.0033 |
+| SVD (CF) | MovieLens 100K | MAE | 0.6712 ± 0.0033 |
+| LinUCB (Custom) | Amazon Beauty (top 50 items) | Mean Reward (Replay) | 0.9040 |
+| LinUCB (Custom) | Amazon Beauty (top 50 items) | Match Rate | 3.7% (427/11670) |
 
-#### Internal Algorithms Repository
+**Notes:**
+- SVD model saved to `models/svd_model.pkl` (11MB)
+- LinUCB policy saved to `models/bandit_policy.npz` (custom implementation)
+- TF-IDF vectorizer saved to `models/tfidf_vectorizer.pkl`
+- LinUCB uses TF-IDF features (100 dims) from review text as context
+- Reward threshold for bandit: rating ≥ 4.0 → positive reward
+- Custom LinUCB uses Sherman-Morrison O(d²) updates (no external dependency)
+
+#### 1.3 Simulation Pipeline Verification
 - status: active
-- type: context
-- id: product.saas.arch.components.algorithms
-- last_checked: 2026-01-23T19:47:31+01:00
 <!-- content -->
-The central library of data processing and control algorithms. This leverages **Vertex AI** for advanced data science modeling and optimization tasks, representing the core intellectual property of the analysis engine.
+- [x] Existing `src/simulations.py` with `run_recommender_simulation()`
+- [x] Existing `src/reward_modulators.py` with various modulator classes
+- [x] Run sanity check simulation with default parameters ✅
+- [x] Verify visualization outputs (Q-landscapes, reward maps) ✅
 
-### Information Flow
+**Verified Visualization Functions (2026-01-22):**
+- `plot_full_results()`: User and Recommender average reward heatmaps
+- `plot_reward_statistics()`: Rolling mean, variance, cumulative reward
+- `plot_initial_vs_final_qvalues()`: Q-value landscape evolution
+- `plot_reward_distribution_analysis()`: Reward histograms and spatial distribution
+- `plot_accept_reject_analysis()`: Accept/reject behavior over time
+- `plot_learning_summary()`: Comprehensive 3x3 grid summary figure
+
+---
+
+### Phase 2: Theoretical Grounding
 - status: active
-- type: context
-- id: product.saas.arch.flow
-- last_checked: 2026-01-23T13:47:07+01:00
 <!-- content -->
 
-#### AI Assistant Orchestration
+#### 2.1 Literature Review (Create Notes in `docs/`)
 - status: active
-- type: context
-- id: product.saas.arch.flow.orchestration
-- last_checked: 2026-01-23T15:28:59+01:00
 <!-- content -->
-User interaction begins with the Chatbot App, which forwards requests to the Orchestrator (Vertex AI).
-1.  **Intent Recognition**: The Orchestrator determines if the request is **Analysis** (informational) or **Control** (actionable).
-2.  **Routing**:
-    *   **Analysis**: Routed to Code Interpreter / Analyst Agent for data querying and visualization.
-    *   **Control**: Routed to Planner / RL Agent for optimization and decision making.
-3.  **Response**: Results are aggregated and returned to the Chatbot as natural language or UI components.
+- [ ] Review preference formation literature (how users learn preferences)
+- [ ] Review non-stationarity in RL (drifting bandits, concept drift)
+- [ ] Review reward shaping and intrinsic motivation literature
+- [ ] Review exploration-exploitation trade-offs in recommender systems
 
-#### Control Loop
+#### 2.2 Define Formal Model
 - status: active
-- type: context
-- id: product.saas.arch.flow.control
-- last_checked: 2026-01-23T15:28:59+01:00
 <!-- content -->
-This high-frequency loop handles the autonomous optimization system:
-1.  **Telemetry Ingest**: Raw data streams from the Client App/Warehouse are ingested into BigQuery.
-2.  **State Estimation**: Processing algorithms convert raw telemetry into state vectors ($s_t$) suitable for model input.
-3.  **Decision**: The Policy network ($\pi$) or Planer selects the optimal action ($a_t$) based on the current state.
-4.  **Execution & Feedback**: The action is sent to the Controller for execution, and the outcome is recorded for offline re-training and refinement.
+- [ ] Define agent utility function mathematically
+- [ ] Define modulated reward function: `R_modulated(t) = f(R_true(t), modulator_state(t))`
+- [ ] Define "suboptimality gap" metric
+- [ ] Define "lock-in" or "local optima trapping" formally
 
-#### Human-AI Interaction
+#### 2.3 Markov Chain Formalization (from MC_AGENT.md)
 - status: active
-- type: context
-- id: product.saas.arch.flow.human_ai
-- last_checked: 2026-01-23T19:51:07+01:00
 <!-- content -->
-Defines the protocols for how humans interact with the AI agents.
+- [ ] Define the state space formally:
+  - User state: Q-values `Q_user(s,a)` for all (context, recommendation) pairs
+  - Recommender state: Q-values or policy parameters
+  - Modulator state: sensitivity level, history buffer, etc.
+  - Combined state: `S_t = (Q_user, Q_rec, M_state, context)`
+- [ ] Define transition dynamics:
+  - Context transition: `context_{t+1} ~ P(·|context_t)` (environment drift)
+  - User update: `Q_user_{t+1} = f(Q_user_t, action, modulated_reward)`
+  - Recommender update: `Q_rec_{t+1} = g(Q_rec_t, action, rec_reward)`
+  - Modulator update: `M_{t+1} = h(M_t, reward)`
+- [ ] Identify sources of randomness:
+  - Exploration (ε-greedy)
+  - Environment stochasticity
+  - Modulator dynamics (e.g., MoodSwings)
 
-##### Developer-AI Interaction
+---
+
+### Phase 3: Integration Layer
 - status: active
-- type: protocol
-- id: product.saas.arch.flow.human_ai.developer
-- last_checked: 2026-01-23T19:51:07+01:00
 <!-- content -->
-Protocol for developers to configure, train, and debug agents. Involves direct access to internal logs, model weights, and the 'Analysis Sandbox' for safe code testing.
 
-##### Client-AI Interaction
+#### 3.1 Create Unified Experiment Interface
 - status: active
-- type: protocol
-- id: product.saas.arch.flow.human_ai.client
-- last_checked: 2026-01-23T19:51:07+01:00
 <!-- content -->
-Protocol for end-users. Restricted to natural language via the Chatbot App. No direct code execution allowed. Intent is parsed by the Orchestrator.
+- [ ] Create `src/experiments/config.py` with experiment configuration dataclasses
+- [ ] Create `src/experiments/runner.py` that orchestrates:
+  - Data loading (from `src/data/`)
+  - Model training (from `src/models/`)
+  - Simulation execution (from `src/simulations.py`)
+- [ ] Support reproducibility (random seeds, logging)
 
-#### AI-Tools Protocols
+#### 3.2 Connect Data Pipeline to Simulation
 - status: active
-- type: protocol
-- id: product.saas.arch.flow.tools
-- last_checked: 2026-01-23T19:51:07+01:00
 <!-- content -->
-Protocols for how AI agents utilize external software and APIs. Adheres to the **Model Context Protocol (MCP)** to standardize tool definition, discovery, and execution.
+- [ ] Create adapter: MovieLens → Simulation Environment
+  - Map movies to `n_recommendations` dimension
+  - Map user contexts (genres, time) to `n_contexts` dimension
+  - Use ratings as ground-truth reward landscape
+- [ ] Create adapter: Amazon Beauty → Bandit Environment
+  - Use TF-IDF features as context
+  - Map products to arms
 
-### Knowledge Bases
+#### 3.3 Define Experiment Protocols
 - status: active
-- type: context
-- id: product.saas.arch.knowledge
-- last_checked: 2026-01-23T20:00:00+01:00
 <!-- content -->
-Repository resources categorized by their function.
+- [ ] **Protocol A: Stationary Learning Baseline**
+  - No modulation, fixed environment
+  - Measure: convergence time, final Q-landscape vs true landscape
+- [ ] **Protocol B: Modulated Learning**
+  - Apply reward modulators (ReceptorModulator, NoveltyModulator, HomeostaticModulator)
+  - Measure: how modulation affects learned preferences
+- [ ] **Protocol C: Non-Stationary Environment**
+  - Use `shift_environment_right()` or similar
+  - Measure: adaptation rate, tracking error
 
-#### Agentic
+#### 3.4 Markov Chain Analysis Infrastructure ✅
 - status: active
-- type: context
-- id: product.saas.arch.knowledge.agentic
-- last_checked: 2026-01-23T20:00:00+01:00
 <!-- content -->
-- [MANAGER_AGENT](MANAGER_AGENT.md)
-- [CLEANER_AGENT](../cleaner/CLEANER_AGENT.md)
-- [REACT_ASSISTANT](../../AI_AGENTS/specialists/REACT_ASSISTANT.md)
-- [RECSYS_AGENT](../../AI_AGENTS/specialists/RECSYS_AGENT.md)
-- [CONTROL_AGENT](../../AI_AGENTS/specialists/CONTROL_AGENT.md)
-- [UI_DESIG_ASSISTANT](../../AI_AGENTS/specialists/UI_DESIG_ASSISTANT.md)
-- [LINEARIZE_AGENT](../../AI_AGENTS/specialists/LINEARIZE_AGENT.md)
-- [MC_AGENT](../../AI_AGENTS/specialists/MC_AGENT.md)
+Created `src/analysis/mc_analysis.py` with:
 
-#### Knowledge
-- status: active
-- type: context
-- id: product.saas.arch.knowledge.general
-- last_checked: 2026-01-23T20:00:00+01:00
-<!-- content -->
-- [README](../../README.md)
-- [MD_CONVENTIONS](../../MD_CONVENTIONS.md)
-- [AGENTS](../../AGENTS.md)
-- [AGENTS_LOG](../../AGENTS_LOG.md)
-- [DAG_Example](../../language/example/DAG_Example.md)
-
-## Implementation Roadmap
-- status: active
-- type: plan
-- id: product.saas.roadmap
-- last_checked: 2026-01-23T21:44:23+01:00
-<!-- content -->
-This roadmap strips away enterprise complexity to focus on the core value proposition: a local app that acts as a data hub and a chat interface, connected to powerful cloud agents for execution.
-
-### Phase 1: Local Nexus
-- status: active
-- type: plan
-- id: implementation.phase1
-- owner: user
-- priority: critical
-- estimate: 4w
-- last_checked: 2026-01-24T11:54:00+01:00
-<!-- content -->
-This document outlines the tactical execution plan for building the **Local Nexus**, the client-side application of the Intelligent Control SaaS.
-
-**Objective**: Create a self-contained local application that functions as:
-1. **Data Warehouse**: Ingests and structures raw CSV/Excel files locally (DuckDB).
-2. **Interface**: A chat-based UI for querying that data (Streamlit).
-
-**Tech Stack Selection**:
-* **Language**: Python 3.10+
-* **Frontend**: Streamlit (Chosen for rapid iteration and native data support).
-* **Database**: DuckDB (Embedded OLAP, zero-dependency, SQL compatible).
-**Tech Stack Selection**:
-* **Language**: Python 3.10+
-* **Frontend**: Streamlit (Chosen for rapid iteration and native data support).
-* **Database**: DuckDB (Embedded OLAP, zero-dependency, SQL compatible).
-* **Data Processing**: Pandas / Polars.
-* **Agent Framework**: **Google ADK (Local Mode)**. Even in Phase 1, we will structure "Mock tools" using the ADK pattern (Python functions + type hints) to make the transition to Phase 3 seamless.
-
-#### Project Initialization & Structure
-- status: done
-- type: task
-- id: implementation.phase1.init
-- estimate: 1d
-- last_checked: 2026-01-24T11:58:00+01:00
-<!-- content -->
-Establish the repository structure to support modular growth into Phases 2 and 3.
-
-**Directory Structure**:
-```
-/src
-  /app.py            # Main Streamlit entry point
-  /core
-    /database.py     # DuckDB singleton wrapper
-    /ingestion.py    # File processing logic
-  /components
-    /chat.py         # UI component for chat history
-    /sidebar.py      # UI component for file management
-  /utils
-    /logger.py       # Telemetry logging (for future RL)
-/tests               # Unit and integration tests
-/data
-  /raw               # Staging area for user uploads
-  /warehouse.db      # Persistent DuckDB file
-```
-
-#### Module 1: The Local Data Warehouse
-- status: done
-- type: task
-- id: implementation.phase1.warehouse
-- blocked_by: [implementation.phase1.init]
-- estimate: 1w
-- last_checked: 2026-01-24T11:54:00+01:00
-<!-- content -->
-Implement the persistence layer using DuckDB. This is the "Long-Term Memory" of the system.
-
-##### Database Manager Class
-- status: done
-- type: task
-- id: implementation.phase1.warehouse.manager
-- last_checked: 2026-01-24T11:54:00+01:00
-<!-- content -->
-Create a DatabaseManager class in src/core/database.py.
-
-* **Connection**: Maintain a persistent connection to data/warehouse.db.
-* **Schema Definition**:
-    * **`metadata_registry`**:
-        * `file_id` (UUID, PK)
-        * `filename` (VARCHAR)
-        * `upload_timestamp` (TIMESTAMP)
-        * `file_hash` (VARCHAR)
-        * `row_count` (INTEGER)
-    * **`telemetry_log`**:
-        * `log_id` (UUID, PK)
-        * `user_id` (VARCHAR, nullable) -- Prepare for Phase 2 Auth
-        * `timestamp` (TIMESTAMP)
-        * `query_text` (VARCHAR)
-        * `response_type` (VARCHAR)
-        * `user_feedback` (INTEGER, nullable)
-        * `synced_at` (TIMESTAMP, nullable) -- For Phase 2 Sync Logic
-* **Methods**: `get_connection()`, `execute_query()`, `get_table_schema()`.
-
-##### Ingestion Service
-- status: done
-- type: task
-- id: implementation.phase1.warehouse.ingest
-- blocked_by: [implementation.phase1.warehouse.manager]
-- last_checked: 2026-01-24T11:54:00+01:00
-<!-- content -->
-Create logic to handle user file uploads.
-
-1. **Normalization**: Convert incoming Excel/CSV to a strict Pandas DataFrame.
-2. **Type Enforcement**: Cast generic `object` columns to specific types (String, Int, Float, Bool, Timestamp) to ensure future BigQuery compatibility.
-3. **Sanitization**: Clean column names (lowercase, snake_case) to make them SQL-friendly for the LLM later.
-4. **Storage**: Use `duckdb.sql("CREATE TABLE ... AS SELECT ...")` to persist data.
-5. **Versioning**: Calculate a content hash (SHA-256) of the file. If the hash exists, skip; if the filename exists but hash differs, create a new version (e.g., `sales_data_v2`).
-
-#### Module 2: The Chat Interface
-- status: done
-- type: task
-- id: implementation.phase1.ui
-- blocked_by: [implementation.phase1.warehouse]
-- estimate: 1w
-- last_checked: 2026-01-24T11:54:00+01:00
-<!-- content -->
-Implement the Streamlit frontend.
-
-##### Layout & Session State
-- status: done
-- type: task
-- id: implementation.phase1.ui.layout
-- last_checked: 2026-01-24T11:54:00+01:00
-<!-- content -->
-* **Sidebar**: "Data Management". A file uploader widget and a list of currently available tables in DuckDB.
-* **Main Area**: Chat container.
-* **State Management**: Initialize `st.session_state` to hold:
-  * `messages`: List of `{'role': 'user'|'assistant', 'content': str, 'data_ref': ...}`.
-  * `active_tables`: List of tables currently in context.
-  * `user_identity`: Dict `{'id': 'local-dev', 'role': 'admin'}` (Mock for Phase 2 Auth).
-
-##### Chat Logic & Mock Orchestrator
-- status: done
-- type: task
-- id: implementation.phase1.ui.chat
-- blocked_by: [implementation.phase1.ui.layout]
-- last_checked: 2026-01-24T11:54:00+01:00
-<!-- content -->
-Since the Cloud Agents (Phase 3) are not ready, build a **Local Loopback** for testing.
-
-1. **Input**: User types "Show me the last 5 rows of sales".
-2. **Mock Processor (ADK Pattern)**:
-   * Instead of random regex, define a class `LocalAnalyst` with methods like `get_sales_data(limit: int)`.
-   * Use **Pydantic** to define the input schema for these methods, mirroring how ADK handles tool arguments.
-   * This allows us to "swap" this Mock Processor for a real `adk.Agent` in Phase 3 without rewriting the frontend.
-3. **Rendering**:
-   * If response is Text: `st.markdown()`.
-   * If response is Data: `st.dataframe()` or `st.bar_chart()`.
-
-#### Module 3: Testing & Quality Assurance
-- status: todo
-- type: task
-- id: implementation.phase1.testing
-- blocked_by: [implementation.phase1.ui]
-- estimate: 3d
-- last_checked: 2026-01-24T08:35:00+01:00
-<!-- content -->
-Establish comprehensive testing to ensure reliability before packaging.
-
-##### Unit Tests
-- status: todo
-- type: task
-- id: implementation.phase1.testing.unit
-<!-- content -->
-- <!-- content -->
-- **Framework**: `pytest`
-- **Coverage**:
-    - `ingestion.py`: Verify file hash assertions and schema normalization.
-    - `database.py`: Test connection persistence and query execution with mock data.
-
-##### Integration Tests
-- status: todo
-- type: task
-- id: implementation.phase1.testing.integration
-- blocked_by: [implementation.phase1.testing.unit]
-<!-- content -->
-- <!-- content -->
-- **Flow**: Simulate a full user flow: User uploads CSV -> Ingestion -> stored in DB -> Query retrieves it.
-
-#### Module 4: Packaging & Distribution
-- status: todo
-- type: task
-- id: implementation.phase1.packaging
-- blocked_by: [implementation.phase1.testing]
-- estimate: 2d
-- last_checked: 2026-01-24T08:35:00+01:00
-<!-- content -->
-Prepare the application for easy local deployment.
-
-##### Dependency Management
-- status: todo
-- type: task
-- id: implementation.phase1.packaging.deps
-<!-- content -->
-- <!-- content -->
-- Create `requirements.txt` with locked versions.
-- Create `environment.yml` for Conda users.
-
-##### Execution Scripts
-- status: todo
-- type: task
-- id: implementation.phase1.packaging.scripts
-<!-- content -->
-- <!-- content -->
-- Create `run_app.sh` (Mac/Linux) and `run_app.bat` (Windows) to set up the environment and launch `streamlit run src/app.py`.
-
-#### Research Instrumentation (Pre-RL)
-- status: todo
-- type: task
-- id: implementation.phase1.research
-- priority: high
-- last_checked: 2026-01-24T08:35:00+01:00
-<!-- content -->
-To prepare for the RL Agents in Phase 3, we must treat this phase as the "Data Collection" period.
-
-* **Interaction Logging**: Every user query and subsequent system output must be logged to a JSONL file or the `telemetry_log` table.
-* **Format**:
-  ```json
-  {
-    "timestamp": "ISO8601",
-    "state_snapshot": ["list_of_active_tables", "row_counts"],
-    "action_user_query": "raw_text_input",
-    "system_response_type": "table_render",
-    "user_feedback": null
-  }
+- [x] **State Tracking**
+  ```python
+  class MarkovChainAnalyzer:
+      def snapshot_state(self) -> dict:
+          """Capture full system state (user Q, rec Q, modulator state)"""
+      
+      def state_fingerprint(self) -> str:
+          """Hashable representation for state comparison"""
+      
+      def compute_state_distance(self, state1, state2) -> float:
+          """Measure distance between two states (e.g., Frobenius norm of Q-differences)"""
   ```
-* **Why**: This dataset will be used to offline-train the Orchestrator to classify intent (Analysis vs. Control) before we deploy the live model.
 
-### Phase 2: The Cloud Bridge
+- [x] **Transition Analysis**
+  ```python
+  def estimate_transition_kernel(self, n_samples=1000) -> np.ndarray:
+      """Estimate local transition probabilities via Monte Carlo"""
+  
+  def check_markov_property(self, n_tests=100) -> bool:
+      """Verify transitions depend only on current state, not history"""
+  ```
+
+- [x] **Convergence Diagnostics** (mixing time placeholder)
+  ```python
+  def estimate_mixing_time(self, epsilon=0.01, n_chains=10) -> int:
+      """Run parallel chains, measure when distributions merge"""
+  
+  def compute_spectral_gap(self) -> float:
+      """Estimate spectral gap (larger = faster mixing)"""
+  ```
+
+- [x] **Absorption Analysis**
+  ```python
+  def estimate_absorption_probabilities(self, n_simulations=100) -> dict:
+      """P(absorbing to global optimum) vs P(absorbing to local optimum)"""
+  
+  def mean_hitting_time(self, target_region, n_simulations=100) -> float:
+      """Expected steps to reach target region of state space"""
+  ```
+
+---
+
+### Phase 4: Core Experiments
 - status: active
-- type: plan
-- id: implementation.phase2
-- owner: user
-- priority: critical
-- estimate: 2w
-- last_checked: 2026-01-24T08:50:00+01:00
-- blocked_by: [implementation.phase1]
 <!-- content -->
-This document details the "Cloud Bridge" implementation. The goal is to establish a secure, scalable communication channel between the Local Nexus (Phase 1) and the Cloud Agents (Phase 3) using the Google Cloud Ecosystem.
 
-**Objective**:
-1.  **Infrastructure**: Provision serverless compute and storage on GCP.
-2.  **Connectivity**: Build a secure API Gateway for the local app to "phone home".
-3.  **Synchronization**: Create pipelines to mirror local data to the cloud for heavy processing.
-
-**Tech Stack**:
-*   **Compute**: Google Cloud Run (Serverless Container).
-*   **Database**: Google BigQuery (Warehousing) & Firestore (NoSQL Metadata).
-*   **API**: Python FastAPI.
-*   **Auth**: Firebase Authentication.
-*   **Deployment**: Terraform / gcloud CLI (via Antigravity MCP).
-
-#### Module 0: Snake Game Trial
-- status: todo
-- type: task
-- id: implementation.phase2.snake
-- estimate: 3d
-<!-- content -->
-The idea is that we are going to put a small app in the cloud to test functionalities. After that we are going to start with the infrastructure initialization
-
-#### Module 1: Infrastructure Initialization (GCP)
-- status: todo
-- type: task
-- id: implementation.phase2.infra
-- estimate: 3d
-- last_checked: 2026-01-24T08:50:00+01:00
-<!-- content -->
-Provision the necessary Google Cloud resources. We will favor "Infrastructure as Code" practices.
-
-##### Project Setup & API Enablement
-- status: todo
-- type: task
-- id: implementation.phase2.infra.setup
-- priority: high
-<!-- content -->
-*   **Action**: Create a new GCP Project (e.g., `intelligent-control-prod`).
-*   **Enable APIs**:
-    *   `run.googleapis.com` (Cloud Run)
-    *   `artifactregistry.googleapis.com` (Docker Images)
-    *   `bigquery.googleapis.com` (Data Warehouse)
-    *   `firestore.googleapis.com` (App State)
-
-##### IaC & Deployment Workflow
-- status: todo
-- type: task
-- id: implementation.phase2.infra.iac
-- blocked_by: [implementation.phase2.infra.setup]
-<!-- content -->
-Define the infrastructure using Terraform or scriptable `gcloud` commands.
-*   **Workflow**:
-    1.  User prompts Antigravity to "Deploy Infrastructure".
-    2.  Antigravity uses the terminal tool (or `gcloud` MCP) to execute the provisioning scripts.
-    3.  Outputs (Service URLs, Bucket Names) are saved to `deployment_config.json`.
-
-#### Module 2: Authentication & Security
-- status: todo
-- type: task
-- id: implementation.phase2.auth
-- blocked_by: [implementation.phase2.infra]
-- estimate: 1w
-- last_checked: 2026-01-24T08:50:00+01:00
-<!-- content -->
-Secure the bridge. The Local App must authenticate before sending data.
-
-##### Identity Management (Firebase)
-- status: todo
-- type: task
-- id: implementation.phase2.auth.firebase
-<!-- content -->
-*   **Setup**: Initialize a Firebase project linked to the GCP project.
-*   **Client**: Integrate `firebase-admin` in the Cloud API and the JS/Python SDK in the Local App.
-*   **Flow**:
-    1.  Local User logs in.
-    2.  Local App gets JWT Token.
-    3.  API Gateway verifies JWT Token on every request.
-
-##### Service Security
-- status: todo
-- type: task
-- id: implementation.phase2.auth.iam
-<!-- content -->
-*   **Service Accounts**: Create a specific Service Account for the Cloud Run instance.
-*   **Permissions**: Grant strictly necessary roles (e.g., `roles/bigquery.dataEditor`, `roles/storage.objectCreator`). **Do not use Owner role.**
-
-#### Module 3: The API Gateway (Connector)
-- status: todo
-- type: task
-- id: implementation.phase2.api
-- blocked_by: [implementation.phase2.auth]
-- estimate: 1w
-- last_checked: 2026-01-24T08:50:00+01:00
-<!-- content -->
-Develop and deploy the central REST API.
-
-##### Service Skeleton (FastAPI)
-- status: todo
-- type: task
-- id: implementation.phase2.api.dev
-<!-- content -->
-Create `src/cloud/main.py`.
-*   **Endpoints**:
-    *   `POST /v1/telemetry`: Accepts JSON payloads of user interactions.
-    *   `POST /v1/agent/task`: Submits a complex task for the Cloud Agents.
-    *   `GET /v1/agent/status/{task_id}`: Polling endpoint for long-running jobs.
-
-##### Containerization & Deploy
-- status: todo
-- type: task
-- id: implementation.phase2.api.deploy
-- blocked_by: [implementation.phase2.api.dev]
-<!-- content -->
-*   **Docker**: Create `Dockerfile` optimized for Python (multi-stage build).
-*   **CI/CD**: Define a simple deployment script: `gcloud run deploy --source .`.
-
-#### Module 4: Data Synchronization Pipeline
-- status: todo
-- type: task
-- id: implementation.phase2.pipeline
-- blocked_by: [implementation.phase2.api]
-- estimate: 1w
-- last_checked: 2026-01-24T08:50:00+01:00
-<!-- content -->
-Mechanisms to move large datasets from Local DuckDB to Cloud BigQuery.
-
-##### Blob Storage Ingress
-- status: todo
-- type: task
-- id: implementation.phase2.pipeline.gcs
-<!-- content -->
-For raw files (CSV/Excel) that are too large for JSON payloads.
-*   **Mechanism**: Local App requests a Signed Upload URL from the API.
-*   **Action**: Local App PUTs the file directly to a GCS Bucket (`raw-data-ingress`).
-
-##### Warehouse Sync (BigQuery)
-- status: todo
-- type: task
-- id: implementation.phase2.pipeline.bigquery
-- blocked_by: [implementation.phase2.pipeline.gcs]
-<!-- content -->
-*   **Schema Mapping**: Map DuckDB types to BigQuery types.
-*   **Validation**: Check incoming schema against existing BigQuery schema to reject breaking changes (Schema Drift defense).
-*   **Validation**: Check incoming schema against existing BigQuery schema to reject breaking changes (Schema Drift defense).
-*   **Trigger**: When a file lands in GCS, a Cloud Event triggers a "Loader" function (or the API itself) to load the CSV into BigQuery.
-*   **ADK Compatibility**: Ensure the BigQuery dataset labels and descriptions are verbose. ADK's `BigQueryTool` uses these schema descriptions to understand how to query the data.
-
-### Phase 3: The Cloud Agents
-- status: todo
-- type: plan
-- id: implementation.phase3
-- owner: user
-- priority: critical
-- estimate: 6w
-- blocked_by: [implementation.phase2]
-<!-- content -->
-This document details the implementation of the "Brain" of the Intelligent Control SaaS: a multi-agent system built using the **Google Agent Development Kit (ADK)**.
-
-**Objective**: Deploy a robust, observable, and scalable agent ecosystem handling:
-1.  **Analysis**: Python-based data science and visualization.
-2.  **Control**: RL/Control-theory optimization using a custom algorithm repository.
-3.  **Orchestration**: Intelligent routing and state management.
-
-**Tech Stack**:
-*   **Framework**: Google ADK (Python SDK).
-*   **Model**: Gemini 1.5 Pro (via Vertex AI).
-*   **Runtime**: Cloud Run (Containerized Agents).
-*   **Evaluation**: Vertex AI Gen AI Evaluation Service.
-
-#### Architecture: The ADK Ecosystem
-- status: todo
-- type: plan
-- id: implementation.phase3.arch
-- estimate: 1w
-<!-- content -->
-We will leverage ADK's pattern for composable agents. The system will consist of a top-level **Coordinator Agent** and two specialized worker agents.
-
-##### The Coordinator Pattern
-- status: todo
-- type: protocol
-- id: implementation.phase3.arch.coordinator
-<!-- content -->
-Instead of a monolithic chain, we use a central `LlmAgent` acting as a router.
-*   **Input**: Natural language user queries + State Context (from Phase 2).
-*   **Decision**: Uses a `classify_intent` tool or few-shot prompting to decide:
-    *   `ANALYSIS_REQUIRED` -> Delegate to Analyst Agent.
-    *   `CONTROL_REQUIRED` -> Delegate to Controller Agent.
-    *   `AMBIGUOUS` -> Ask clarifying questions.
-*   **Output**: Aggregates responses from workers and formats the final answer for the user.
-
-#### Module 1: The Analyst Agent (Data Scientist)
-- status: todo
-- type: task
-- id: implementation.phase3.analyst
-- blocked_by: [implementation.phase3.arch]
-- estimate: 2w
-<!-- content -->
-**Role**: "Why is this happening?"
-**Tools**: Code Execution, Data Visualization.
-
-##### Data Science Tool Repository
-- status: todo
-- type: task
-- id: implementation.phase3.analyst.repo
-<!-- content -->
-We will build a dedicated Python library (`src/lib_analysis`) that the agent learns to use.
-*   **Structure**:
-    ```python
-    /src/lib_analysis
-       /visualize.py   # High-level plot wrappers (plot_time_series, plot_distribution)
-       /stats.py       # Hypothesis testing (anova, t_test)
-       /clean.py       # Auto-cleaning utilities
-    ```
-*   **Integration**:
-    *   Expose these functions as **ADK Tools**.
-    *   Use type hints and docstrings heavily, as ADK uses these for tool definition verification.
-
-##### Code Execution Sandbox
-- status: todo
-- type: task
-- id: implementation.phase3.analyst.sandbox
-<!-- content -->
-*   **Mechanism**: The agent writes code that imports `lib_analysis`.
-*   **Security**: Use ADK's `CodeExecutionTool` configured with a restricted environment (or E2B integration if ADK native support is insufficient).
-*   **Output Handling**: Capture `stdout` (text) and generated artifacts (PNG/JSON) to pass back to the Coordinator.
-
-#### Module 2: The Controller Agent (Optimizer)
-- status: todo
-- type: task
-- id: implementation.phase3.controller
-- blocked_by: [implementation.phase3.analyst]
-- estimate: 2w
-<!-- content -->
-**Role**: "Optimize for X."
-**Tools**: Optimization Algorithms, Simulation.
-
-##### Control Algorithms Integration
-- status: todo
-- type: task
-- id: implementation.phase3.controller.integration
-<!-- content -->
-Integrate the external repository [control_algorithms](https://github.com/IgnacioOQ/control_algorithms).
-*   **Step 1**: Submodule or Package integration of the user's repository.
-*   **Step 2**: Create an **ADK Tool Wrapper** (`src/tools/control_tools.py`) that exposes key algorithms as callable functions:
-    *   `run_mpc_optimization(state_vector, constraints)`
-    *   `solve_newsvendor(demand_dist, costs)`
-    *   `simulate_scenario(initial_state, horizon)`
-*   **Step 3**: Define the "State Schema". The Agent must know how to map the raw telemetry (from BigQuery/Phase 2) into the inputs required by these algorithms.
-
-#### Module 3: Agent Development & Ops (ADK)
-- status: todo
-- type: task
-- id: implementation.phase3.ops
-- blocked_by: [implementation.phase3.controller]
-- estimate: 1w
-<!-- content -->
-Establish the lifecycle for developing and improving these agents.
-
-##### Evaluation Pipeline (GenAI Eval)
-- status: todo
-- type: task
-- id: implementation.phase3.ops.eval
-<!-- content -->
-Use Google's Gen AI Evaluation Service to move beyond "vibes-based" testing.
-*   **Trajectory Evaluation**: check if the Analyst Agent *actually* used the `visualize.py` tool or if it tried to hallucinate a plot.
-*   **Golden Datasets**: Create a set of (Query, Expected_Tool_Call, Expected_Outcome) tuples.
-*   **CI/CD**: Run `adk eval` as part of the deployment pipeline.
-
-##### Deployment (Vertex AI)
-- status: todo
-- type: task
-- id: implementation.phase3.ops.deploy
-<!-- content -->
-*   **Containerize**: Wrap the ADK agent server in a Docker container.
-*   **Deploy**: Push to Cloud Run.
-*   **Expose**: Connect the Cloud Run endpoint to the API Gateway created in Phase 2.
-
-## Commercial Strategy
+#### 4.1 Experiment 1: Preference Formation (RQ1)
 - status: active
-- type: plan
-- id: product.saas.commercial
-- last_checked: 2026-01-24T09:40:55+01:00
 <!-- content -->
-This section outlines the strategy for monetization, user acquisition, and market validation.
+**Question:** How do recommender systems guide users into learning what they like?
 
-### Frontline Trials
-- status: todo
-- type: plan
-- id: product.saas.commercial.frontline
-- estimate: 4w
-<!-- content -->
-**Objective**: Validate the product value proposition with real users in a low-stakes environment.
-*   **Approach**: "Do things that don't scale." Direct outreach to friendly SMBs (Retail/Logistics).
-*   **Goal**: 5-10 active users providing weekly feedback.
-*   **Monetization**: Free or heavily discounted in exchange for feedback/testimonials.
-*   **Metrics**: Engagement (Daily Active Users), "Magic Moments" (e.g., "This saved me 2 hours").
+- [ ] Setup:
+  - User agent starts with uniform/random Q-values
+  - Recommender agent has learned (or optimal) policy
+  - Track user's Q-landscape evolution over time
+- [ ] Metrics:
+  - Correlation between final user Q-landscape and environment true values
+  - Time to "stabilize" preferences (mixing time proxy)
+  - Diversity of explored options before convergence
+- [ ] **MC Metrics:**
+  - Track state trajectory: `S_0 → S_1 → ... → S_T`
+  - Measure convergence to absorbing state
+  - Verify Markov property holds
+- [ ] Notebook: `notebooks/exp1_preference_formation.ipynb`
 
-### Payment Schema
-- status: todo
-- type: plan
-- id: product.saas.commercial.payment
-- blocked_by: [product.saas.commercial.frontline]
-- estimate: 2w
-<!-- content -->
-**Objective**: Build the infrastructure to capture value.
-*   **Tech**: Stripe / Lemon Squeezy integration.
-*   **Models**:
-    *   **Freemium**: Local-only features are free.
-    *   **Pro ($29/mo)**: Cloud sync + basic Analyst Agent usage (token capped).
-    *   **Enterprise (Custom)**: Full Controller Agent access + dedicated support.
-*   **Deliverable**: A seamless "Upgrade" flow within the Streamlit app.
-
-### Marketing & Growth
-- status: todo
-- type: plan
-- id: product.saas.commercial.marketing
-- blocked_by: [product.saas.commercial.payment]
-<!-- content -->
-**Objective**: Scale awareness and acquisition.
-*   **Content Marketing**: Blog posts/Videos demonstrating "Data Science for Non-Data Scientists" using our app.
-*   **Outreach**: Targeted LinkedIn outreach to Operations Managers in Logistics/Retail.
-*   **Channels**:
-    *   **Organic**: SEO, GitHub (Open Source core?).
-    *   **Paid**: Targeted ads on niche industry forums (later stage).
-
-## Legals & Admin
-- status: todo
-- type: plan
-- id: legal
-- last_checked: 2026-01-24T09:57:25+01:00
-<!-- content -->
-This section details the administrative and legal infrastructure, divided by jurisdiction.
-
-### US Branch (Headquarters)
+#### 4.2 Experiment 2: Non-Stationarity Effects (RQ2)
 - status: active
-- type: plan
-- id: legal.us
-- owner: user
 <!-- content -->
-**Role**: Global Revenue Collection, Cloud Services Contracting, Intellectual Property Holder.
+**Question:** How does non-stationarity affect learning dynamics?
 
-#### Banking & Cloud Accounting
-- status: todo
-- type: task
-- id: legal.us.banking
-- estimate: 1w
-<!-- content -->
-**Objective**: Establish the financial hub.
-*   **Banking**:
-    *   **Mercury**: Recommended (Zero fees, high yield).
-    *   **Backup**: Novo / Grasshopper.
-    *   **Action**: Apply with EIN and Articles of Organization.
-*   **Accounting**:
-    *   **QuickBooks Online**: Connect to Mercury.
-    *   **Revenue**: Stripe / App Store payouts land here.
-    *   **Expenses**: Pay Google Cloud (GCP/Workspace), GitHub, and EOR/Contractor fees from this account.
+- [ ] Setup:
+  - Environment shifts periodically (`stationarity=False`)
+  - Compare: user with/without modulation
+  - Compare: different shift rates (slow vs fast)
+- [ ] Metrics:
+  - Tracking error: `||Q_learned(t) - Q_true(t)||`
+  - Regret accumulation over time
+  - "Staleness" of recommendations
+- [ ] **MC Metrics:**
+  - Analyze as time-inhomogeneous Markov chain
+  - Measure "escape rate" from old equilibria when environment shifts
+  - Compare mixing times under different drift rates
+- [ ] Notebook: `notebooks/exp2_nonstationarity.ipynb`
 
-### Argentina Branch (Talent Hub)
-- status: todo
-- type: plan
-- id: legal.ar
-- owner: user
-<!-- content -->
-**Role**: Talent Acquisition, Software Development Center.
-
-#### Entity Setup: S.R.L. (Sociedad de Responsabilidad Limitada)
-- status: todo
-- type: task
-- id: legal.ar.setup
-- estimate: 4w
-<!-- content -->
-**Objective**: Establish a local entity to hire full-time employees without EOR markup.
-*   **Structure**:
-    *   **Partners**: Requires 2 partners. Options:
-        *   **Option A (Corporate Link)**: You 95% + US LLC 5% (*Requires US LLC IGJ registration*).
-        *   **Option B (Fast Route)**: You 95% + Trusted Individual 5% (*Avoids US LLC paperwork*).
-    *   **Capital**: ~ARS 100,000 (Symbolic). 25% paid at signing.
-    *   **Manager**: Must have domicile in Argentina. (You can serve as Manager using your Argentine DNI/Passport if you maintain a local address).
-*   **Process**:
-    1.  **Name Reservation**: Check availability with IGJ.
-    2.  **Bylaws (Contrato Social)**: Drafted by a local Notary Public (*Escribano*).
-    3.  **Registration**: File with IGJ (Inspección General de Justicia).
-    4.  **Tax ID**: Obtain CUIT from AFIP.
-*   **US LLC Requirement**: To be a partner, the US LLC must register with IGJ under "Article 123" (Simplified in 2024, no longer need to prove assets abroad).
-
-#### Hiring & Payroll
-- status: todo
-- type: task
-- id: legal.ar.hiring
-- blocked_by: [legal.ar.setup]
-<!-- content -->
-**Objective**: Hire local developers legally.
-*   **Payroll**:
-    *   **Registration**: Register as Employer (*Alta de Empleador*) with AFIP.
-    *   **Service**: Use a local accounting firm (Estudio Contable) to process monthly payslips (*Recibos de Sueldo*) and F931 (Social Security).
-*   **Benefits**:
-    *   **Mandatory**: 13th Salary (*Aguinaldo*), Vacation (14 days), Health Insurance (*Obra Social*).
-    *   **Perks**: USD Split-payment (part of salary paid abroad) is common for retention, but requires careful tax structuring (*consult local CPA*).
-
-## Security & Safety Checks
+#### 4.3 Experiment 3: Suboptimal Lock-In (RQ3)
 - status: active
-- type: guideline
-- id: product.saas.security
-- last_checked: 2026-01-23T13:47:07+01:00
 <!-- content -->
--   **Indirect Execution**: Clients only submit natural language, never code.
--   **Repository Scoping**: Generated code can only import whitelisted libraries (`pandas`, `numpy`, `lib_analysis`). No `os` or `sys`.
--   **Simulation Isolation**: User-provided logic runs in `gVisor` sandboxes.
--   **Action Bounding**: Deterministic logic layer validates actions against safety constraints (e.g., `MAX_ORDER_LIMIT`) before execution.
+**Question:** Can modulated reward functions trap agents in suboptima?
 
-## Research Directions
+- [ ] Setup:
+  - Environment has clear global optimum and local optimum
+  - User agent uses modulated rewards (e.g., ReceptorModulator)
+  - Compare: modulated vs non-modulated user
+- [ ] Metrics:
+  - Frequency of converging to global vs local optimum
+  - Time spent in each region of state space
+  - "Escape probability" from local optima
+- [ ] **MC Metrics (Critical for RQ3):**
+  - **Absorption probability**: `P(absorb to local | modulated)` vs `P(absorb to local | unmodulated)`
+  - **Mean hitting time** to global optimum from initial state
+  - **Spectral gap** comparison: modulation may reduce spectral gap (slower mixing = more trapping)
+  - Identify new absorbing states created by modulation
+- [ ] Hypothesis: Receptor downregulation may cause user to "tire" of high-reward options, preventing exploitation of global optimum
+- [ ] Notebook: `notebooks/exp3_suboptimal_lockin.ipynb`
+
+#### 4.4 Experiment 4: Interaction Between Modulation Types
 - status: active
-- type: plan
-- id: product.saas.research
-- last_checked: 2026-01-23T13:47:07+01:00
 <!-- content -->
+- [ ] Compare different modulator classes:
+  - `ReceptorModulator`: Tolerance/desensitization
+  - `NoveltyModulator`: Exploration bonus decay
+  - `HomeostaticModulator`: Setpoint regulation
+  - `MoodSwings`: Stochastic drift in reward perception
+- [ ] Measure: Which modulator leads to most/least "trapping"?
+- [ ] **MC Metrics:**
+  - Spectral gap per modulator type
+  - Absorption probability distributions
+  - State space coverage (ergodicity measure)
+- [ ] Notebook: `notebooks/exp4_modulator_comparison.ipynb`
 
-### Brainstorming
+---
+
+### Phase 5: Extended Analysis
 - status: active
-- type: plan
-- id: product.saas.research.brainstorming
 <!-- content -->
--   **MBRL (DreamerV3)**: Learning World Models from telemetry to simulate environments.
--   **Safe RL**: Constrained MDPs (Lagrangian Relaxation) to ensure safety during exploration.
--   **Reflexion**: Agents that analyze their own tracebacks to iteratively fix code.
 
-### RL Protocols
-- status: todo
-- type: plan
-- id: product.saas.research.rl_protocols
+#### 5.1 Visualization Suite
+- status: active
 <!-- content -->
-[Source Discussion](https://claude.ai/share/b89ac095-3db2-4f1c-9bc1-316d8f691637)
+- [ ] Create `src/visualization/` module with:
+  - Q-landscape evolution animations
+  - Reward trajectory plots
+  - Accept/reject heatmaps over time
+  - Modulator state trajectories
+  - **NEW:** State space trajectory visualizations (2D/3D PCA projections)
+  - **NEW:** Absorption basin visualizations
 
-**Protocol Evolution via Reinforcement Learning**
+#### 5.2 Statistical Analysis
+- status: active
+<!-- content -->
+- [ ] Run multiple seeds (n=50+) for each experiment
+- [ ] Compute confidence intervals
+- [ ] Perform significance tests (paired t-tests, Mann-Whitney)
+- [ ] **NEW:** Bootstrap estimates for absorption probabilities
 
-**Core Idea**
+#### 5.3 Sensitivity Analysis
+- status: active
+<!-- content -->
+- [ ] Vary modulator parameters (alpha, beta, etc.)
+- [ ] Vary environment parameters (n_recommendations, n_contexts)
+- [ ] Vary agent learning rates and exploration rates
+- [ ] **NEW:** Sensitivity of spectral gap to parameters
 
-Treat communication protocols (like MCP) as **signaling systems** that can be optimized using reinforcement learning. Instead of designing protocols top-down, let them evolve based on task success signals from RLHF.
+#### 5.4 Markov Chain Verification (NEW)
+- status: active
+<!-- content -->
+- [ ] **Reproducibility Test**: Same seed → same trajectory
+- [ ] **Markov Test**: Verify `P(X_{t+1} | X_t, X_{t-1}, ...) = P(X_{t+1} | X_t)`
+- [ ] **Ergodicity Check**: Does the chain explore the full state space?
+- [ ] **Stationarity Check**: Does a limiting distribution exist?
 
-The insight comes from signal-trading games: meaningful communication can emerge without explicitly cooperative payoffs. What matters is the network structure (signal channels exist) and learning dynamics (agents improve over time).
+---
 
-**Framework**
+### Phase 6: Real Data Validation
+- status: active
+<!-- content -->
 
-**State**: Task context (what the LLM is trying to accomplish)
+#### 6.1 MovieLens Experiments
+- status: active
+<!-- content -->
+- [ ] Initialize environment reward landscape from real ratings
+- [ ] Simulate user learning with recommender guidance
+- [ ] Compare: random recommender vs SVD-based recommender
+- [ ] **MC Analysis:** Compare mixing times for different recommender policies
 
-**Action**: Which description variant to use for a protocol function
+#### 6.2 Amazon Beauty Experiments
+- status: active
+<!-- content -->
+- [ ] Use contextual bandit in sequential recommendation
+- [ ] Measure online learning performance
+- [ ] Compare LinUCB vs random policy under modulation
+- [ ] **MC Analysis:** Context-dependent absorption probabilities
 
-**Reward**: RLHF signal (task success or failure)
+---
 
-**Learning**: DQN-style updates over description variants
+### Phase 7: Documentation & Reporting
+- status: active
+<!-- content -->
 
-**Design Choices**
+#### 7.1 Technical Documentation
+- status: active
+<!-- content -->
+- [ ] Update `AGENTS.md` with new architecture
+- [ ] Update `AI_AGENTS/MC_AGENT.md` with recommender-specific extensions
+- [ ] Document all experiment configurations
+- [ ] Add docstrings to new functions
 
-| Aspect | Choice | Rationale |
-|--------|--------|-----------|
-| Granularity | Individual function descriptions | Local, composable, testable evolution |
-| Credit assignment | Blame the protocol | LLM-agnostic; forces protocol robustness |
-| Learning rule | DQN | Handles continuous description space via function approximation |
-| Local conventions | Feature, not bug | Different LLM↔Tool pairs can specialize |
+#### 7.2 Research Report
+- status: active
+<!-- content -->
+- [ ] Write introduction with research questions
+- [ ] Describe methodology (including MC framework)
+- [ ] Present results with figures
+- [ ] Discussion: implications for recommender system design
+- [ ] Conclusion: when do recommenders help vs harm preference learning?
 
-**Why DQN**
+---
 
-Tabular Q-learning (as in the signal-trading paper) works for small discrete signal spaces. But function descriptions live in high-dimensional natural language space. DQN provides:
+### Quick Reference: Key Files
+- status: active
+<!-- content -->
+| File | Purpose |
+|------|---------|
+| `src/simulations.py` | Main simulation loop |
+| `src/reward_modulators.py` | ReceptorModulator, NoveltyModulator, HomeostaticModulator, etc. |
+| `src/agents/` | Q-Learning, DQN, PPO, Bandit agents |
+| `src/environment.py` | ExogenousRewardEnvironment |
+| `src/data/download.py` | MovieLens & Amazon data pipelines |
+| `src/data/process.py` | Data transformation |
+| `src/models/train_cf.py` | SVD collaborative filtering |
+| `src/models/train_bandit.py` | LinUCB contextual bandit |
+| `src/analysis/mc_analysis.py` | **NEW:** Markov Chain analysis tools |
+| `AI_AGENTS/MC_AGENT.md` | Markov Chain Agent instructions |
+| `AI_AGENTS/RECSYS_AGENT.md` | RecSys Agent instructions |
 
-- Generalization across similar descriptions
-- Experience replay for stable learning
-- Scalability to large variant pools
+---
 
-**Information Flow Measurement**
+### Markov Chain Framework Summary
+- status: active
+<!-- content -->
 
-Adapt Normalized Mutual Information (NMI) from the signal-trading paper:
-
-**I(Description; TaskSuccess)** measures how well the choice of description predicts task outcome. Higher NMI means the protocol carries more useful information.
-
-**The Distributed Aspect**
-
-The network topology mirrors signal-trading games:
-
+#### The System as a Markov Chain
+- status: active
+<!-- content -->
 ```
-    Human
-      ↕ (RLHF)
-    LLM ←—protocol—→ MCP Host
-      ↕                  ↕
-   Tool₁              Tool₂
+State Space: S_t = (Q_user, Q_rec, M_state, context)
+
+Transition: S_t → S_{t+1}
+  1. Recommender observes context → selects recommendation
+  2. User observes (context, recommendation) → selects accept/reject
+  3. Environment reveals reward
+  4. Modulator transforms reward → modulated_reward
+  5. User updates Q_user based on modulated_reward
+  6. Recommender updates Q_rec based on accept/reject
+  7. Modulator updates internal state
+  8. Context transitions (possibly non-stationary)
 ```
 
-Each edge is a signal channel with independent rewards. Cooperation emerges from the channel structure, not aligned payoffs—exactly as the paper predicts.
-
-**Connection to Grice's Cooperative Principle**
-
-The paper argues that the Cooperative Principle isn't encoded in payoff matrices but in the network of signal channels itself. Opening a communication channel implies commitment to information exchange. The protocol schema embodies this commitment; RLHF teaches agents to honor it effectively.
-
-### Clawdbot + Mac mini
-- status: todo
-- type: plan
-- id: product.saas.research.clawdbot
-- last_checked: 2026-01-25T13:40:40+01:00
+#### Key MC Questions for Each RQ
+- status: active
 <!-- content -->
-A research direction inspired by the [Clawdbot project](https://github.com/clawdbot/clawdbot) to create a "Personal AI Assistant" that runs locally on a Mac mini but interacts via chat apps (Telegram/iMessage).
+| Research Question | MC Analysis |
+|-------------------|-------------|
+| RQ1: How do recommenders guide learning? | Track trajectory `S_0 → S_∞`, measure recommender's influence on absorption |
+| RQ2: Effect of non-stationarity? | Time-inhomogeneous chain, measure adaptation via mixing time |
+| RQ3: Suboptimal lock-in? | Compare absorption probabilities with/without modulation |
 
-**Key Implementation Features**:
-*   **Architecture**: Hosted on an always-on M4 Mac mini with direct shell access for executing commands, managing files, and installing dependencies.
-*   **Gateway Interface**: A daemon bridging the local agent to Telegram/iMessage, allowing "Chat with your server" functionality without a web UI.
-*   **Memory System**: Uses daily Markdown notes indexed by tools like Obsidian or Raycast for long-term context and human retrieval.
-*   **Recursive Self-Improvement**: The agent can research, write, and install its own "Skills" (MCP servers/scripts) to dynamically expand its capabilities.
-*   **Integrations**: Planned support for Home Control (Hue/Sonos), Productivity (Notion/Gmail), and Voice/Vision (ElevenLabs/Nano Banana).
+---
+
+### Current Priority Queue
+- status: active
+<!-- content -->
+1. **Immediate:** Verify data pipeline works end-to-end
+2. **Next:** Run baseline simulation sanity check
+3. **Then:** Create `src/analysis/mc_analysis.py` with basic state tracking
+4. **After:** Design and run Experiment 1 (Preference Formation)
+5. **Finally:** Introduce modulators and run Experiment 3 (Suboptimal Lock-In)
+
+---
+
+*Last Updated: 2026-01-21*
