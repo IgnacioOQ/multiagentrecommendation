@@ -1,5 +1,8 @@
 # TODOS: Recommender Systems & Learning Dynamics Study Plan
 - status: active
+- type: task
+- context_dependencies: {"conventions": "../../MD_CONVENTIONS.md", "master_plan": "../../MASTER_PLAN.md"}
+<!-- content -->
 
 > **Main Research Questions:**
 > 1. How do recommender systems guide users into learning what they like?
@@ -13,6 +16,7 @@
 
 ### 1.1 Data Pipeline Setup
 - status: active
+<!-- content -->
 - [x] Create `src/data/download.py` with `MovieLensPipeline` and `AmazonBeautyPipeline`
 - [x] Create `src/data/process.py` for data transformation
 - [x] Add unit tests (`tests/test_download_mock.py`)
@@ -21,6 +25,7 @@
 
 ### 1.2 Models Training Pipeline
 - status: active
+<!-- content -->
 - [x] Create `src/models/train_cf.py` for SVD collaborative filtering
 - [x] Create `src/models/train_bandit.py` for LinUCB contextual bandits
 - [x] Run and verify CF training on MovieLens data ✅
@@ -29,6 +34,7 @@
 
 #### Baseline Metrics (2026-01-22)
 - status: active
+<!-- content -->
 | Model | Dataset | Metric | Value |
 |-------|---------|--------|-------|
 | SVD (CF) | MovieLens 100K | RMSE | 0.8729 ± 0.0033 |
@@ -46,6 +52,7 @@
 
 ### 1.3 Simulation Pipeline Verification
 - status: active
+<!-- content -->
 - [x] Existing `src/simulations.py` with `run_recommender_simulation()`
 - [x] Existing `src/reward_modulators.py` with various modulator classes
 - [x] Run sanity check simulation with default parameters ✅
@@ -66,6 +73,7 @@
 
 ### 2.1 Literature Review (Create Notes in `docs/`)
 - status: active
+<!-- content -->
 - [ ] Review preference formation literature (how users learn preferences)
 - [ ] Review non-stationarity in RL (drifting bandits, concept drift)
 - [ ] Review reward shaping and intrinsic motivation literature
@@ -73,6 +81,7 @@
 
 ### 2.2 Define Formal Model
 - status: active
+<!-- content -->
 - [ ] Define agent utility function mathematically
 - [ ] Define modulated reward function: `R_modulated(t) = f(R_true(t), modulator_state(t))`
 - [ ] Define "suboptimality gap" metric
@@ -80,6 +89,7 @@
 
 ### 2.3 Markov Chain Formalization (from MC_AGENT.md)
 - status: active
+<!-- content -->
 - [ ] Define the state space formally:
   - User state: Q-values `Q_user(s,a)` for all (context, recommendation) pairs
   - Recommender state: Q-values or policy parameters
@@ -102,6 +112,7 @@
 
 ### 3.1 Create Unified Experiment Interface
 - status: active
+<!-- content -->
 - [ ] Create `src/experiments/config.py` with experiment configuration dataclasses
 - [ ] Create `src/experiments/runner.py` that orchestrates:
   - Data loading (from `src/data/`)
@@ -111,6 +122,7 @@
 
 ### 3.2 Connect Data Pipeline to Simulation
 - status: active
+<!-- content -->
 - [ ] Create adapter: MovieLens → Simulation Environment
   - Map movies to `n_recommendations` dimension
   - Map user contexts (genres, time) to `n_contexts` dimension
@@ -121,6 +133,7 @@
 
 ### 3.3 Define Experiment Protocols
 - status: active
+<!-- content -->
 - [ ] **Protocol A: Stationary Learning Baseline**
   - No modulation, fixed environment
   - Measure: convergence time, final Q-landscape vs true landscape
@@ -133,6 +146,7 @@
 
 ### 3.4 Markov Chain Analysis Infrastructure ✅
 - status: active
+<!-- content -->
 Created `src/analysis/mc_analysis.py` with:
 
 - [x] **State Tracking**
@@ -182,6 +196,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 4.1 Experiment 1: Preference Formation (RQ1)
 - status: active
+<!-- content -->
 **Question:** How do recommender systems guide users into learning what they like?
 
 - [ ] Setup:
@@ -200,6 +215,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 4.2 Experiment 2: Non-Stationarity Effects (RQ2)
 - status: active
+<!-- content -->
 **Question:** How does non-stationarity affect learning dynamics?
 
 - [ ] Setup:
@@ -218,6 +234,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 4.3 Experiment 3: Suboptimal Lock-In (RQ3)
 - status: active
+<!-- content -->
 **Question:** Can modulated reward functions trap agents in suboptima?
 
 - [ ] Setup:
@@ -238,6 +255,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 4.4 Experiment 4: Interaction Between Modulation Types
 - status: active
+<!-- content -->
 - [ ] Compare different modulator classes:
   - `ReceptorModulator`: Tolerance/desensitization
   - `NoveltyModulator`: Exploration bonus decay
@@ -257,6 +275,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 5.1 Visualization Suite
 - status: active
+<!-- content -->
 - [ ] Create `src/visualization/` module with:
   - Q-landscape evolution animations
   - Reward trajectory plots
@@ -267,6 +286,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 5.2 Statistical Analysis
 - status: active
+<!-- content -->
 - [ ] Run multiple seeds (n=50+) for each experiment
 - [ ] Compute confidence intervals
 - [ ] Perform significance tests (paired t-tests, Mann-Whitney)
@@ -274,6 +294,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 5.3 Sensitivity Analysis
 - status: active
+<!-- content -->
 - [ ] Vary modulator parameters (alpha, beta, etc.)
 - [ ] Vary environment parameters (n_recommendations, n_contexts)
 - [ ] Vary agent learning rates and exploration rates
@@ -281,6 +302,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 5.4 Markov Chain Verification (NEW)
 - status: active
+<!-- content -->
 - [ ] **Reproducibility Test**: Same seed → same trajectory
 - [ ] **Markov Test**: Verify `P(X_{t+1} | X_t, X_{t-1}, ...) = P(X_{t+1} | X_t)`
 - [ ] **Ergodicity Check**: Does the chain explore the full state space?
@@ -293,6 +315,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 6.1 MovieLens Experiments
 - status: active
+<!-- content -->
 - [ ] Initialize environment reward landscape from real ratings
 - [ ] Simulate user learning with recommender guidance
 - [ ] Compare: random recommender vs SVD-based recommender
@@ -300,6 +323,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 6.2 Amazon Beauty Experiments
 - status: active
+<!-- content -->
 - [ ] Use contextual bandit in sequential recommendation
 - [ ] Measure online learning performance
 - [ ] Compare LinUCB vs random policy under modulation
@@ -312,6 +336,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 7.1 Technical Documentation
 - status: active
+<!-- content -->
 - [ ] Update `AGENTS.md` with new architecture
 - [ ] Update `AI_AGENTS/MC_AGENT.md` with recommender-specific extensions
 - [ ] Document all experiment configurations
@@ -319,6 +344,7 @@ Created `src/analysis/mc_analysis.py` with:
 
 ### 7.2 Research Report
 - status: active
+<!-- content -->
 - [ ] Write introduction with research questions
 - [ ] Describe methodology (including MC framework)
 - [ ] Present results with figures

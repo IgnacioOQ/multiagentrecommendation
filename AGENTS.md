@@ -1,8 +1,11 @@
 # AGENTS.md
 - status: active
+- type: guideline
+<!-- content -->
 
 ## SHORT ADVICE
 - status: active
+<!-- content -->
 - The whole trick is providing the AI Assistants with context, and this is done using the *.md files (AGENTS.md, AGENTS_LOG.md, and the AI_AGENTS folder)
 - Learn how to work the Github, explained below.
 - Keep logs of changes in AGENTS_LOG.md
@@ -12,6 +15,7 @@
 
 ## HUMAN-ASSISTANT WORKFLOW
 - status: active
+<!-- content -->
 1. Open the assistant and load the ai-agents-branch into their local repositories. Do this by commanding them to first of all read the AGENTS.md file.
 2. Work on the ASSISTANT, making requests, modifying code, etc.
 3. IMPORTANT: GIT MECHANISM
@@ -26,13 +30,14 @@
 
 ## WORKFLOW & TOOLING
 - status: active
-
+<!-- content -->
 *   **Documentation Logs (`AGENTS_LOG.md`):**
     *   **Rule:** Every agent that performs a significant intervention or modifies the codebase **MUST** update the `AGENTS_LOG.md` file.
     *   **Action:** Append a new entry under the "Intervention History" section summarizing the task, the changes made, and the date.
 
 ## DEVELOPMENT RULES & CONSTRAINTS
 - status: active
+<!-- content -->
 1.  **Immutable Core Files:** Do not modify 
     *   If you need to change the logic of an agent or the model, you must create a **new version** (e.g., a subclass or a new file) rather than modifying the existing classes in place.
 2.  **Consistency:** Ensure any modifications or new additions remain as consistent as possible with the logic and structure of the `main` branch.
@@ -40,6 +45,7 @@
 
 ## CONTEXT FINE-TUNING
 - status: active
+<!-- content -->
 You cannot "fine-tune" an AI agent (change its underlying neural network weights) with files in this repository. **However**, you **CAN** achieve a similar result using **Context**.
 
 **How it works (The "Context" Approach):**
@@ -59,26 +65,32 @@ If you want to teach an agent a new language (like JAX) or technique:
 
 ## LOCAL PROJECT DESCRIPTION
 - status: active
+<!-- content -->
 
 ### Project Overview
 - status: active
+<!-- content -->
 The project is a "Homeostatic Reinforcement Learning" simulation framework modeling the interaction between a recommender agent and a user agent using Q-learning.
 
 ### Setup & Testing
 - status: active
+<!-- content -->
 *   **Install Dependencies:** `pip install -r requirements.txt`
 *   **Run Tests:** `python -m unittest discover tests`
 
 ### Key Architecture & Logic
 - status: active
+<!-- content -->
 
 #### 1. Agents
 - status: active
+<!-- content -->
 *   **`src/environment.py`**: The environment logic (p generation, reward calculation).
 *   **`src/agents/`**: Package containing Q-Learning agent implementations (e.g., `q_learning.py`, `dqn.py`, `ppo.py`).
 
 #### 2. Simulation Loop (`src/simulations.py`)
 - status: active
+<!-- content -->
 *   **Step:**
     1.  Environment generates p.
     2.  Agents observe p and output actions (Recommend/Not Recommend).
@@ -88,9 +100,11 @@ The project is a "Homeostatic Reinforcement Learning" simulation framework model
 
 ### Key Files and Directories
 - status: active
+<!-- content -->
 
 #### Directory Structure
 - status: active
+<!-- content -->
 *   `src/`: Contains the core Python modules.
     *   `agents/`: Q-Learning Agent classes (BaseQLearningAgent, RecommenderAgent, RecommendedAgent in `q_learning.py`).
     *   `utils/`: Utility functions (e.g., `math_ops.py`).
@@ -113,6 +127,7 @@ The project is a "Homeostatic Reinforcement Learning" simulation framework model
 
 #### File Dependencies & Logic
 - status: active
+<!-- content -->
 `src/simulations.py` depends on `src/agents/`, `src/environment.py`, and `src/reward_modulators.py`.
 All source files import from `src/imports.py` for common dependencies.
 

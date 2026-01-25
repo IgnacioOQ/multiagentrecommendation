@@ -1,19 +1,24 @@
 # Agents Log
 - status: active
+- type: log
+<!-- content -->
 
 ## Intervention History
 - status: active
+<!-- content -->
 
 ### Housekeeping Report (Initial)
 - status: active
+<!-- content -->
 **Date:** 
 **Summary:** Executed initial housekeeping protocol.
 **AI Assitant:**
 - **Dependency Network:** 
-- **Tests:** 
+- **Tests:**
 
 ### Bug Fix: Advanced Analysis (Shape Mismatch)
 - status: active
+<!-- content -->
 **Date:** 2024-05-22
 **Summary:** Fixed RuntimeError in `advanced_experiment_interface.ipynb`.
 - **Issue:** `compute_policy_metrics` in `src/analysis.py` passed 1D inputs `(100, 1)` to agents expecting 2D inputs `(100, 2)`.
@@ -23,6 +28,7 @@
 
 ### Bug Fix: Notebook NameError
 - status: active
+<!-- content -->
 **Date:** 2024-05-22
 **Summary:** Fixed NameError in `advanced_experiment_interface.ipynb`.
 - **Issue:** The variable `ep_id` was used in a print statement but was undefined in the new JSON saving block.
@@ -30,6 +36,7 @@
 
 ### Project Reorganization
 - status: active
+<!-- content -->
 **Date:** 2026-01-21
 **Summary:** Reorganized project into standard directory structure.
 - **Changes:**
@@ -44,6 +51,7 @@
 
 ### Model Training & Bandit Agent Enhancement
 - status: active
+<!-- content -->
 **Date:** 2026-01-22
 **Summary:** Verified model training pipelines and added ContextualBanditAgent.
 - **Changes:**
@@ -63,6 +71,7 @@
 
 ### Documentation Update & Housekeeping
 - status: active
+<!-- content -->
 **Date:** 2026-02-18
 **Summary:** Updated AGENTS.md to match codebase and executed housekeeping protocol.
 - **Changes:**

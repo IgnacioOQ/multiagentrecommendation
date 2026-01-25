@@ -1,6 +1,7 @@
 # Housekeeping Protocol
 - status: active
-
+- type: recurring
+<!-- content -->
 1. Read the AGENTS.md file.
 2. Look at the dependency network of the project, namely which script refers to which one.
 3. Proceed doing different sanity checks and unit tests from root scripts to leaves.
@@ -9,10 +10,13 @@
 
 # Current Project Housekeeping
 - status: active
+- type: recurring
+<!-- content -->
 
 ## Dependency Network
 - status: active
-
+- type: task
+<!-- content -->
 Based on current codebase analysis:
 - **Core Modules:** `src/imports.py`, `src/utils/`
 - **Agents:** `src/agents/` (depends on Core)
@@ -23,7 +27,8 @@ Based on current codebase analysis:
 
 ## Latest Report
 - status: active
-
+- type: task
+<!-- content -->
 **Date:** 2026-02-18
 **Author:** Jules
 

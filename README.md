@@ -1,11 +1,12 @@
 # Recommender-Recommended RL Simulation
 - status: active
-
+- type: guideline
+<!-- content -->
 This project simulates the dynamic interplay between a recommender system and a user, both modeled as reinforcement learning agents. It provides a flexible framework to explore how internal states and reward modulation can shape their learning and interaction over time.
 
 ## Core Concepts
 - status: active
-
+<!-- content -->
 The simulation is built around two key agents:
 
 *   **Recommender Agent**: This agent learns to suggest items to the user. It receives a positive reward for an accepted recommendation and a negative one for a rejection. Its goal is to maximize accepted recommendations.
@@ -15,7 +16,7 @@ This setup creates a human-in-the-loop system where the agents' decisions mutual
 
 ## Key Components
 - status: active
-
+<!-- content -->
 The project is organized into several key modules:
 
 *   **`agents.py`**: Defines the `RecommenderAgent` and `RecommendedAgent`. Both are built on a `BaseQLearningAgent` and use Q-learning to adapt their strategies.
@@ -29,7 +30,7 @@ The project is organized into several key modules:
 
 ## Getting Started
 - status: active
-
+<!-- content -->
 To get started with the simulation, follow these steps:
 
 1.  **Clone the repository**:
@@ -44,12 +45,12 @@ To get started with the simulation, follow these steps:
 
 ## Running the Simulations
 - status: active
-
+<!-- content -->
 The project includes several Jupyter notebooks and Python scripts for running simulations and tests.
 
 ### Testing the `ReceptorModulator`
 - status: active
-
+<!-- content -->
 To test the behavior of the `ReceptorModulator`, you can run the `test_receptor_modulator.py` script:
 
 ```bash
@@ -60,7 +61,7 @@ This will run a simulation and generate a plot (`receptor_modulator_test.png`) t
 
 ### Using the Jupyter Notebooks
 - status: active
-
+<!-- content -->
 The project also includes several Jupyter notebooks for more in-depth analysis:
 
 *   `testing_homeostasis.ipynb`
@@ -77,5 +78,5 @@ This will open a new tab in your browser where you can navigate to and run the n
 
 ## Dependencies
 - status: active
-
+<!-- content -->
 All the necessary Python packages are listed in the `requirements.txt` file.
