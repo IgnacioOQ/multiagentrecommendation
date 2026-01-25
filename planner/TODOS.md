@@ -113,34 +113,34 @@
 ### 3.1 Create Unified Experiment Interface
 - status: active
 <!-- content -->
-- [ ] Create `src/experiments/config.py` with experiment configuration dataclasses
-- [ ] Create `src/experiments/runner.py` that orchestrates:
+- [x] Create `src/experiments/config.py` with experiment configuration dataclasses
+- [x] Create `src/experiments/runner.py` that orchestrates:
   - Data loading (from `src/data/`)
   - Model training (from `src/models/`)
   - Simulation execution (from `src/simulations.py`)
-- [ ] Support reproducibility (random seeds, logging)
+- [x] Support reproducibility (random seeds, logging)
 
 ### 3.2 Connect Data Pipeline to Simulation
 - status: active
 <!-- content -->
-- [ ] Create adapter: MovieLens → Simulation Environment
+- [x] Create adapter: MovieLens → Simulation Environment
   - Map movies to `n_recommendations` dimension
   - Map user contexts (genres, time) to `n_contexts` dimension
   - Use ratings as ground-truth reward landscape
-- [ ] Create adapter: Amazon Beauty → Bandit Environment
+- [x] Create adapter: Amazon Beauty → Bandit Environment
   - Use TF-IDF features as context
   - Map products to arms
 
 ### 3.3 Define Experiment Protocols
 - status: active
 <!-- content -->
-- [ ] **Protocol A: Stationary Learning Baseline**
+- [x] **Protocol A: Stationary Learning Baseline**
   - No modulation, fixed environment
   - Measure: convergence time, final Q-landscape vs true landscape
-- [ ] **Protocol B: Modulated Learning**
+- [x] **Protocol B: Modulated Learning**
   - Apply reward modulators (ReceptorModulator, NoveltyModulator, HomeostaticModulator)
   - Measure: how modulation affects learned preferences
-- [ ] **Protocol C: Non-Stationary Environment**
+- [x] **Protocol C: Non-Stationary Environment**
   - Use `shift_environment_right()` or similar
   - Measure: adaptation rate, tracking error
 
