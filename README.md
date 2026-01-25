@@ -3,7 +3,7 @@
 - type: guideline
 - context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}
 <!-- content -->
-This project simulates the dynamic interplay between a recommender system and a user, both modeled as reinforcement learning agents. It provides a flexible framework to explore how internal states and reward modulation can shape their learning and interaction over time.
+This project simulates the dynamic interplay between a recommender system and a user, both modeled as reinforcement learning agents. It also uses real world data to inform the simulations. The ultimate goal of the project is to develop an Offline Evaluation (or Offline Experimentation) platform for recommender systems. In particular, it should help identify and explore how internal states and reward modulation can shape the user's learning and interaction over time.
 
 ## Core Concepts
 - status: active
