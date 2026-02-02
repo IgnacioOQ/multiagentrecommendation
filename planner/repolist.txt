@@ -1,3 +1,0 @@
-https://github.com/eikasia-llc/central_planner
-https://github.com/eikasia-llc/local_nexus
-https://github.com/eikasia-llc/control_algorithms

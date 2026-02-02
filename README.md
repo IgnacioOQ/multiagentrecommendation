@@ -81,3 +81,32 @@ This will open a new tab in your browser where you can navigate to and run the n
 - status: active
 <!-- content -->
 All the necessary Python packages are listed in the `requirements.txt` file.
+
+## Project Structure
+- status: active
+<!-- content -->
+```
+├── src/                    # Core Python modules
+│   ├── agents/             # Q-Learning agent classes
+│   ├── utils/              # Utility functions
+│   ├── environment.py      # Reward environment
+│   ├── simulations.py      # Main simulation runner
+│   └── reward_modulators.py # Reward modulation classes
+├── tests/                  # Unit and integration tests
+├── notebooks/              # Jupyter notebooks for analysis
+│   ├── explanation.ipynb
+│   ├── testing_homeostasis.ipynb
+│   ├── testing_peaks.ipynb
+│   └── testing_rows.ipynb
+├── data/                   # Data files
+├── models/                 # Saved models
+├── AI_AGENTS/              # Agent instruction files
+│   ├── HOUSEKEEPING.md
+│   ├── LINEARIZE_AGENT.md
+│   ├── MC_AGENT.md
+│   └── RECSYS_AGENT.md
+├── AGENTS.md               # Main agent guidelines
+├── AGENTS_LOG.md           # Intervention history
+├── MD_CONVENTIONS.md       # Markdown schema conventions
+└── requirements.txt        # Python dependencies
+```
