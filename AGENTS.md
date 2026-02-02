@@ -71,33 +71,109 @@ If you want to teach an agent a new language (like JAX) or technique:
 ### Project Overview
 - status: active
 <!-- content -->
-The project is a "Homeostatic Reinforcement Learning" simulation framework modeling the interaction between a recommender agent and a user agent using Q-learning.
+This project simulates a **multi-agent reinforcement learning system** modeling the dynamic interaction between a **recommender system** and a **user**, both implemented as Q-learning agents. The core research focus is exploring how **internal reward modulation** (inspired by biological and psychological models) shapes agent learning, decision-making, and long-term behavior in recommendation systems.
+
+**The Two Agents:**
+- **RecommenderAgent**: Learns to suggest items that maximize user acceptance. Receives +1 reward for accepted recommendations, -1 for rejections.
+- **RecommendedAgent (User)**: Learns to accept/reject recommendations to maximize personal reward from the environment. Can experience modulated rewards based on internal states.
+
+**Research Objectives:**
+- Investigate how reward modulation mechanisms (mood, tolerance, novelty-seeking, homeostasis) affect user learning
+- Explore multi-agent dynamics in human-in-the-loop recommendation systems
+- Model biologically-inspired internal states and their impact on decision-making
 
 ### Setup & Testing
 - status: active
 <!-- content -->
-*   **Install Dependencies:** `pip install -r requirements.txt`
-*   **Run Tests:** `python -m unittest discover tests`
+**Installation:**
+```bash
+pip install -r requirements.txt
+```
+
+**Running Tests:**
+```bash
+python -m unittest discover tests
+# OR
+python tests/test_receptor_modulator.py
+```
+
+**Running Simulations:**
+Use the provided Jupyter notebooks in `notebooks/` for interactive experimentation:
+- `testing_homeostasis.ipynb` - Tests homeostatic reward modulators
+- `testing_peaks.ipynb` - Tests reward landscapes with multiple peaks
+- `testing_rows.ipynb` - Tests row-based reward landscapes
+
+**Basic Usage:**
+```python
+from src.simulations import run_recommender_simulation
+from src.agents.q_learning import RecommenderAgent, RecommendedAgent
+from src.environment import ExogenousRewardEnvironment
+from src.reward_modulators import ReceptorModulator
+
+results = run_recommender_simulation(
+    recommender_agent_class=RecommenderAgent,
+    recommended_agent_class=RecommendedAgent,
+    environment_class=ExogenousRewardEnvironment,
+    modulator_class=ReceptorModulator,
+    n_steps=10000,
+    modulated=True
+)
+```
 
 ### Key Architecture & Logic
 - status: active
 <!-- content -->
 
-#### 1. Agents
+#### 1. Core Logic
 - status: active
 <!-- content -->
-*   **`src/environment.py`**: The environment logic (p generation, reward calculation).
-*   **`src/agents/`**: Package containing Q-Learning agent implementations (e.g., `q_learning.py`, `dqn.py`, `ppo.py`).
 
-#### 2. Simulation Loop (`src/simulations.py`)
+**Agent System (`src/agents/`):**
+- `BaseQLearningAgent`: Foundation class implementing Q-learning with multiple exploration strategies (ε-greedy, UCB, softmax)
+- `RecommenderAgent`: Chooses recommendations (actions) based on context states to maximize acceptance rate
+- `RecommendedAgent`: Chooses accept/reject actions based on (context, recommendation) state pairs to maximize personal reward
+
+**Environment (`src/environment.py`):**
+- `ExogenousRewardEnvironment`: Creates a 2D reward landscape
+  - X-axis: Contexts (user states, typically 50 discrete values)
+  - Y-axis: Recommendations (items, typically 20 discrete values)
+  - Each cell contains the true reward value for accepting that recommendation in that context
+  - Supports Gaussian peaks (global max, local max) to create complex reward landscapes
+  - Dynamic context transitions: agent moves through context space over time
+  - Optional non-stationarity: reward landscape can shift during simulation
+
+**Simulation Loop (`src/simulations.py`):**
+1. Get current context from environment
+2. Recommender chooses a recommendation
+3. User decides to accept/reject
+4. If accepted: user receives environment reward (potentially modulated)
+5. If rejected: user receives 0 reward
+6. Recommender receives +1 (accept) or -1 (reject)
+7. Both agents update their Q-tables
+8. Environment transitions to new context
+9. Repeat for n_steps
+
+**Reward Modulators (`src/reward_modulators.py`):**
+
+The project's most unique contribution. These modulators alter the user's *perceived* reward based on internal states:
+
+- **MoodSwings**: Adds time-varying mood offset to rewards (models emotional fluctuations)
+- **ReceptorModulator**: Implements tolerance/sensitization
+  - Sensitivity decreases with repeated high rewards (downregulation)
+  - Sensitivity recovers during low reward periods (upregulation)
+  - Models biological receptor dynamics (e.g., dopamine tolerance)
+- **NoveltyModulator**: Adds bonus for infrequent (context, recommendation) pairs (models curiosity/exploration drive)
+- **HomeostaticModulator**: Q-learning-based controller that modulates rewards to maintain homeostatic setpoint
+- **TD_DHR / DQN_DHR**: Advanced homeostatic controllers using tabular Q-learning or deep Q-networks
+  - Learn to select modulation signals from reward history to minimize deviation from setpoint
+  - **_D variants**: Dynamic setpoint (allostasis) - setpoint adapts over time
+  - **_E variants**: Expanded action space - can generate novel modulation signals beyond history
+
+#### 2. Dependencies (`src/imports.py`)
 - status: active
 <!-- content -->
-*   **Step:**
-    1.  Environment generates p.
-    2.  Agents observe p and output actions (Recommend/Not Recommend).
-    3.  User Agent (RecommendedAgent) observes Recommender actions and accepts/rejects.
-    4.  Environment calculates outcome and rewards.
-    5.  Agents update their Q-values.
+*   Centralizes imports for `numpy`, `pandas`, `matplotlib`, `scipy`, `statsmodels`, `torch`, `tqdm`, and `collections`.
+*   Provides common utilities used across all modules.
 
 ### Key Files and Directories
 - status: active
