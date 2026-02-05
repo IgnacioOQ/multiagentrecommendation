@@ -42,3 +42,12 @@
     *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
     *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
     *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
+
+### Housekeeping & Cleanup
+*   **Date:** 2025-02-17
+*   **Summary:** Performed housekeeping and cleanup.
+    *   Deleted redundant file `src/reward_modulators copy.py`.
+    *   Verified all unit tests in `tests/` (PASS).
+    *   Executed `tests/test_receptor_modulator.py` (PASS).
+    *   Executed `testing_homeostasis.ipynb`, `testing_peaks.ipynb`, and `testing_rows.ipynb` via script conversion with reduced step counts (1000) for performance (PASS).
+    *   Updated `HOUSEKEEPING.md` with latest report.
