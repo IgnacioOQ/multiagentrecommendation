@@ -42,3 +42,11 @@
     *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
     *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
     *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
+
+### Housekeeping
+*   **Date:** 2026-02-19
+*   **Summary:** Executed housekeeping protocol on `modulators_adjustments` branch.
+    *   Verified dependency network (no major changes).
+    *   Ran unit tests in `tests/` (all passed).
+    *   Verified notebook execution in `notebooks/` by converting to scripts, reducing simulation steps, and mocking `plt.show` and `tqdm`.
+    *   Updated `HOUSEKEEPING.md` with the latest report.
