@@ -42,3 +42,13 @@
     *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
     *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
     *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
+
+### Housekeeping and verification
+- **Date:** 2026-03-26
+- **Task:** Housekeeping and verification
+- **Author:** Jules
+- **Summary:**
+  - Ran unit tests. All 13 tests passed successfully.
+  - Converted Jupyter notebooks to Python scripts and ran them successfully (with reduced iteration counts to finish in reasonable time).
+  - Verified dependency network.
+  - Updated HOUSEKEEPING.md with the latest report.
