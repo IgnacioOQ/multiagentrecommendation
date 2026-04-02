@@ -13,11 +13,11 @@
 Based on the updated `src/` package structure:
 
 - **Core Modules (in `src/`):**
-    - `src/imports.py`: Base dependencies (numpy, torch, etc.).
+    - `src/imports.py`: Base dependencies (numpy, torch, random, tqdm, matplotlib, statsmodels, pandas, warnings, collections).
     - `src/utils.py`: Depends on `src.imports`.
     - `src/agents.py`: Depends on `src.imports`.
     - `src/environment.py`: Depends on `src.imports`.
-    - `src/reward_modulators.py`: Depends on `src.imports`, `src.agents`.
+    - `src/reward_modulators.py`: Depends on `src.imports`, `src.agents`, `torch`, `torch.nn`, `torch.nn.functional`, `torch.optim`, `collections`, `tqdm`.
     - `src/simulations.py`: Depends on `src.imports`, `src.agents`, `src.environment`, `src.reward_modulators`.
     - `src/stationarity_analysis.py`: Depends on `src.imports`.
 
@@ -34,7 +34,7 @@ Based on the updated `src/` package structure:
 
 ## Latest Report
 
-**Execution Date:** 2024-05-22
+**Execution Date:** 2026-04-02
 
 **Test Results:**
 
