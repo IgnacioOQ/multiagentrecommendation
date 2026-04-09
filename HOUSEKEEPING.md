@@ -13,19 +13,21 @@
 Based on the updated `src/` package structure:
 
 - **Core Modules (in `src/`):**
-    - `src/imports.py`: Base dependencies (numpy, torch, etc.).
-    - `src/utils.py`: Depends on `src.imports`.
-    - `src/agents.py`: Depends on `src.imports`.
-    - `src/environment.py`: Depends on `src.imports`.
-    - `src/reward_modulators.py`: Depends on `src.imports`, `src.agents`.
-    - `src/simulations.py`: Depends on `src.imports`, `src.agents`, `src.environment`, `src.reward_modulators`.
-    - `src/stationarity_analysis.py`: Depends on `src.imports`.
+    - `src/imports.py`: Depends on `collections`, `tqdm`, `pandas`, `random`, `scipy`, `statsmodels`, `numpy`, `matplotlib`, `warnings`
+    - `src/utils.py`: Depends on `src.imports`, `src`
+    - `src/agents.py`: Depends on `src.imports`, `src`
+    - `src/environment.py`: Depends on `src.imports`, `src`
+    - `src/reward_modulators.py`: Depends on `collections`, `agents`, `tqdm`, `src.imports`, `torch`
+    - `src/reward_modulators copy.py`: Depends on `collections`, `agents`, `tqdm`, `src.imports`, `torch`
+    - `src/simulations.py`: Depends on `reward_modulators`, `agents`, `src.imports`, `environment`, `src`
+    - `src/stationarity_analysis.py`: Depends on `src.imports`, `src`
+    - `src/__init__.py`: Depends on nothing
 
 - **Tests (in `tests/`):**
-    - `tests/test_agents.py`: Depends on `src.agents`.
-    - `tests/test_environment.py`: Depends on `src.environment`.
-    - `tests/test_modulators.py`: Depends on `src.reward_modulators`.
-    - `tests/test_receptor_modulator.py`: Depends on `src.reward_modulators`.
+    - `tests/test_agents.py`: Depends on `src`, `numpy`, `unittest`, `os`, `sys`
+    - `tests/test_environment.py`: Depends on `src`, `numpy`, `unittest`, `os`, `sys`
+    - `tests/test_modulators.py`: Depends on `src`, `numpy`, `unittest`, `os`, `sys`
+    - `tests/test_receptor_modulator.py`: Depends on `tqdm`, `pandas`, `src`, `numpy`, `matplotlib`, `os`, `sys`
 
 - **Notebooks (in `notebooks/`):**
     - `notebooks/testing_homeostasis.ipynb`: Depends on `src.reward_modulators`.
@@ -34,20 +36,20 @@ Based on the updated `src/` package structure:
 
 ## Latest Report
 
-**Execution Date:** 2024-05-22
+**Execution Date:** 2026-04-09
+**Author:** Jules
 
 **Test Results:**
 
 *   **Unit Tests (`tests/`):** PASSED
-    - `test_agents.py`: Verified `BaseQLearningAgent`, `RecommenderAgent`, `RecommendedAgent`.
-    - `test_environment.py`: Verified `ExogenousRewardEnvironment` initialization, stepping, and shifting.
-    - `test_modulators.py`: Verified `ReceptorModulator`, `HomeostaticModulator`, `TD_DHR`.
-    - `test_receptor_modulator.py`: Executed successfully.
+    - Initially failed with `ModuleNotFoundError: No module named 'numpy'`.
+    - Resolved by running `pip install -r requirements.txt`.
+    - Subsequent executions of `test_agents.py`, `test_environment.py`, `test_modulators.py`, and `test_receptor_modulator.py` succeeded.
 
 *   **Notebook Verification (`notebooks/`):**
-    - `testing_homeostasis.ipynb`: Executed successfully. Verified PID and Homeostatic/Allostatic controllers.
-    - `testing_peaks.ipynb`: Executed successfully. Verified gaussian peak landscape simulation.
-    - `testing_rows.ipynb`: Executed successfully (with reduced steps for verification). Verified recommender simulation with various modulators (MoodSwings, Homeostatic, Receptor, Novelty). Generated 3 output figures confirming visualization logic.
+    - `testing_homeostasis.ipynb`: Converted to script, executed successfully.
+    - `testing_peaks.ipynb`: Converted to script, executed successfully.
+    - `testing_rows.ipynb`: Converted to script, executed successfully. Note: simulation steps were drastically reduced via `sed` to allow faster execution.
 
 **Summary:**
-The project's dependency network is stable. All unit tests passed. Jupyter notebooks were successfully converted to scripts and executed, verifying the integration of agents, environment, and reward modulators. `plot_environment_vs_agent` was identified as missing in `testing_rows.py` (commented out to proceed).
+The project's dependency network is stable. Missing dependencies (e.g. `numpy`) were detected initially but successfully restored via `pip install -r requirements.txt`. All unit tests and converted notebook tests passed seamlessly thereafter.
