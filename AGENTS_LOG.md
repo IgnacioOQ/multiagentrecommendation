@@ -42,3 +42,13 @@
     *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
     *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
     *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
+
+### Housekeeping & Dependency Update
+*   **Date:** 2026-04-23
+*   **Summary:** Executed full housekeeping protocol on `modulators_adjustments` branch.
+    *   Traced out the full dependency network mapping via an AST parser and stored it in `HOUSEKEEPING.md`.
+    *   **Errors Encountered:** Initial test suite run failed with `ModuleNotFoundError: No module named 'numpy'` across all `test_*.py` files.
+    *   **Resolution:** Installed the project dependencies using `pip install -r requirements.txt`.
+    *   Re-ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`), all passed.
+    *   Verified notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting them to scripts, patching `tqdm.notebook`, replacing `plt.show()`, and drastically reducing steps. All notebooks executed cleanly.
+    *   Overwrote the `Latest Report` in `HOUSEKEEPING.md` with the new findings.
