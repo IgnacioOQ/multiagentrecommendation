@@ -1,15 +1,21 @@
+---
+status: active
+type: how-to
+description: Instructions for the RecSys Agent — managing the recommender system lifecycle across collaborative filtering (SVD) and contextual bandits (LinUCB), covering data pipelines, training, evaluation, and inference.
+label: [agent, skill]
+injection: directive
+volatility: evolving
+scope: project-specific
+last_checked: '2026-05-21'
+---
 # Recommender System Agent Instructions
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-- context_dependencies: {"conventions": "../../MD_CONVENTIONS.md", "agents": "../../AGENTS.md", "log": "../../AGENTS_LOG.md"}
-<!-- content -->
+
 **Role:** You are the **RecSys Agent**, a specialist in recommender systems, covering both static collaborative filtering and dynamic contextual bandit approaches.
 
 **Goal:** Manage the full recommender system lifecycle—from data ingestion and processing to model training, evaluation, and inference. Ensure data pipelines are robust, models are properly trained, and recommendations are correctly generated.
 
 ## Background: Dual-Paradigm Recommender System
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 This project implements two complementary recommendation paradigms:
 
 | Paradigm | Algorithm | Dataset | Use Case |
@@ -18,22 +24,21 @@ This project implements two complementary recommendation paradigms:
 | **Contextual Bandits (CMAB)** | LinUCB | Amazon Beauty | Sequential decisions, exploration/exploitation |
 
 These paradigms address different aspects of recommendation:
+
 - **CF** excels at finding latent patterns in user-item interactions
 - **CMAB** excels at adapting to context and balancing exploration vs. exploitation
 
 ## Core Constraints (Strict)
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
-1. **Immutable Core Files:** You **MUST NOT** modify `agents.py`, `model.py`, or `simulation_functions.py` (legacy constraint from `AGENTS.md`).
+
+1. **Immutable Core Files:** You **MUST NOT** modify `agents.py`, `model.py`, or `simulation_functions.py` (legacy constraint).
 2. **Interface Compliance:** New models must follow the existing patterns in `src/models/`.
 3. **Data Integrity:** Never modify raw data files in `data/raw/`. All transformations go to `data/interim/` or `data/processed/`.
 4. **Testing:** All new functionality must have corresponding tests in `tests/`.
-5. **Documentation:** Update `AGENTS_LOG.md` after significant implementations.
+5. **Documentation:** Update `worklog.jsonl` after significant implementations.
 
 ## Project Structure
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
-```
+
+```text
 rec_sys_core/
 ├── src/
 │   ├── data/
@@ -52,19 +57,15 @@ rec_sys_core/
 ```
 
 ## Data Pipeline Protocols
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 
 ### Protocol 1: MovieLens Data Pipeline
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 **Source:** GroupLens MovieLens Latest Small Dataset
 **URL:** `https://files.grouplens.org/datasets/movielens/ml-latest-small.zip`
 **Output:** `data/interim/ratings.csv`, `data/interim/movies.csv`
 
 #### Pipeline Class: `MovieLensPipeline`
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 from src.data.download import MovieLensPipeline
 
@@ -73,6 +74,7 @@ ratings_df, movies_df = pipeline.load_data()
 ```
 
 **Data Schema (ratings.csv):**
+
 | Column | Type | Description |
 |--------|------|-------------|
 | `userId` | int | Unique user identifier |
@@ -81,6 +83,7 @@ ratings_df, movies_df = pipeline.load_data()
 | `timestamp` | int | Unix timestamp of rating |
 
 **Data Schema (movies.csv):**
+
 | Column | Type | Description |
 |--------|------|-------------|
 | `movieId` | int | Unique movie identifier |
@@ -88,29 +91,23 @@ ratings_df, movies_df = pipeline.load_data()
 | `genres` | str | Pipe-separated genre list |
 
 #### Processing Function
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 from src.data.process import process_movielens
 
 output_path = process_movielens(save_dir="data")
 
 # Saves to: data/interim/ratings.csv, data/interim/movies.csv
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 ```
 
 ### Protocol 2: Amazon Beauty Data Pipeline
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 **Source:** Stanford SNAP Amazon Beauty 5-core Dataset
 **URL:** `http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Beauty_5.json.gz`
 **Output:** `data/interim/amazon_beauty.json`
 
 #### Pipeline Class: `AmazonBeautyPipeline`
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 from src.data.download import AmazonBeautyPipeline
 
@@ -119,6 +116,7 @@ reviews_df = pipeline.load_data()
 ```
 
 **Data Schema (amazon_beauty.json):**
+
 | Column | Type | Description |
 |--------|------|-------------|
 | `reviewerID` | str | Unique reviewer identifier |
@@ -128,79 +126,53 @@ reviews_df = pipeline.load_data()
 | `unixReviewTime` | int | Unix timestamp |
 
 #### Processing Function
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 from src.data.process import process_amazon
 
 output_path = process_amazon(save_dir="data")
 
 # Saves to: data/interim/amazon_beauty.json
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 ```
 
 ### Protocol 3: Full Data Pipeline Execution
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 Use the Makefile for reproducible data preparation:
 
 ```bash
-
 # Install dependencies
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make setup
 
 # Download and process all datasets
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make data
 
 # Or run directly
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 python -m src.data.process
 ```
 
 ## Collaborative Filtering Protocols
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 
 ### Protocol 4: SVD Model Training
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 **Library:** Scikit-Surprise
 **Algorithm:** SVD (Singular Value Decomposition) via SGD optimization
 **Input:** `data/interim/ratings.csv`
 **Output:** `models/svd_model.pkl`
 
 #### Training Function
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 from src.models.train_cf import train_cf_model
 
 train_cf_model(data_dir="data")
 
 # Performs 5-fold cross-validation, then full training
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 
 # Outputs RMSE and MAE metrics
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 ```
 
 #### Training Pipeline Details
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 1. **Data Loading:** Read ratings from `data/interim/ratings.csv`
 2. **Reader Configuration:** Set rating scale (0.5, 5.0) for Surprise
 3. **Cross-Validation:** 5-fold CV with RMSE and MAE metrics
@@ -208,29 +180,22 @@ train_cf_model(data_dir="data")
 5. **Serialization:** Save model to `models/svd_model.pkl`
 
 #### Making Predictions with SVD
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 import joblib
 
 # Load trained model
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 model = joblib.load("models/svd_model.pkl")
 
 # Predict rating for user-item pair
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 prediction = model.predict(uid=1, iid=318)  # user 1, movie 318
 print(f"Predicted rating: {prediction.est}")
 ```
 
 #### SVD Hyperparameters
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 Default parameters (can be tuned):
+
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `n_factors` | 100 | Number of latent factors |
@@ -240,9 +205,9 @@ Default parameters (can be tuned):
 | `random_state` | 42 | Random seed for reproducibility |
 
 ### Protocol 5: CF Model Evaluation
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 **Metrics:**
+
 - **RMSE (Root Mean Square Error):** Standard rating prediction error
 - **MAE (Mean Absolute Error):** Average absolute prediction error
 
@@ -250,33 +215,21 @@ Default parameters (can be tuned):
 from surprise.model_selection import cross_validate
 
 # During training, cross_validate outputs:
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 
 # - Mean RMSE across 5 folds
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 
 # - Mean MAE across 5 folds
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 
 # - Standard deviation for both metrics
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 ```
 
 **Expected Performance (MovieLens Small):**
+
 - RMSE: ~0.87 - 0.90
 - MAE: ~0.67 - 0.70
 
 ### Protocol 6: Generating Top-N Recommendations
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 import pandas as pd
 import joblib
@@ -320,39 +273,28 @@ def get_top_n_recommendations(model, user_id, ratings_df, movies_df, n=10):
 ```
 
 ## Contextual Bandit Protocols
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 
 ### Protocol 7: LinUCB Model Training
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 **Library:** contextualbandits
 **Algorithm:** LinUCB (Linear Upper Confidence Bound)
 **Input:** `data/interim/amazon_beauty.json`
 **Output:** `models/bandit_policy.pkl`
 
 #### Training Function
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 from src.models.train_bandit import train_bandit_model
 
 train_bandit_model(data_dir="data")
 
 # Filters to top 50 items, creates TF-IDF contexts
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 
 # Evaluates using Rejection Sampling (Replay method)
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 ```
 
 #### Training Pipeline Details
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 1. **Data Loading:** Read reviews from `data/interim/amazon_beauty.json`
 2. **Item Filtering:** Select top 50 most-reviewed items (arms)
 3. **Context Creation:** TF-IDF vectorization of review text (100 features)
@@ -362,8 +304,7 @@ train_bandit_model(data_dir="data")
 7. **Serialization:** Save policy to `models/bandit_policy.pkl`
 
 #### LinUCB Hyperparameters
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `nchoices` | 50 | Number of arms (items) |
@@ -371,30 +312,32 @@ train_bandit_model(data_dir="data")
 | `random_state` | 42 | Random seed |
 
 ### Protocol 8: Understanding LinUCB
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 **Mathematical Formulation:**
 
 LinUCB maintains for each arm $a$:
+
 - $A_a$: $d \times d$ design matrix
 - $b_a$: $d \times 1$ reward vector
 
 For a context $x_t$, the algorithm:
+
 1. Computes $\hat{\theta}_a = A_a^{-1} b_a$ (ridge regression estimate)
 2. Computes UCB: $p_a = x_t^T \hat{\theta}_a + \alpha \sqrt{x_t^T A_a^{-1} x_t}$
 3. Selects arm with highest UCB
 
 **Update Rule:**
 After observing reward $r_t$ for arm $a_t$:
+
 - $A_{a_t} \leftarrow A_{a_t} + x_t x_t^T$
 - $b_{a_t} \leftarrow b_{a_t} + r_t x_t$
 
 ### Protocol 9: Bandit Policy Evaluation
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 **Offline Evaluation Method:** Rejection Sampling (Replay)
 
 The replay method provides unbiased offline policy evaluation:
+
 1. For each historical interaction $(x_t, a_t, r_t)$
 2. Query the policy for action $\pi(x_t)$
 3. If $\pi(x_t) = a_t$, include $r_t$ in evaluation
@@ -413,34 +356,25 @@ mean_rewards = evaluateRejectionSampling(
 ```
 
 **Interpretation:**
+
 - `mean_rewards`: Average reward over accepted samples
 - Higher is better (max 1.0 for binary rewards)
 - Compare against random baseline (~positive_rate)
 
 ### Protocol 10: Making Bandit Decisions
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 ```python
 import joblib
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 # Load trained policy
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 policy = joblib.load("models/bandit_policy.pkl")
 
 # Create context from new review text
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 tfidf = TfidfVectorizer(max_features=100, stop_words='english')
 
 # Note: In production, fit TF-IDF on training data and save it
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 def recommend_item(policy, review_text, tfidf_vectorizer):
     """
     Recommend an item based on review context.
@@ -459,8 +393,7 @@ def recommend_item(policy, review_text, tfidf_vectorizer):
 ```
 
 ### Protocol 11: Online Bandit Updates
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 For online learning scenarios where you observe rewards:
 
 ```python
@@ -482,96 +415,54 @@ def update_policy(policy, context, action, reward):
 ```
 
 ## Full Workflow Protocols
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 
 ### Protocol 12: Complete Training Pipeline
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
-```bash
 
+```bash
 # 1. Setup environment
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make setup
 
 # 2. Download and process data
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make data
 
 # 3. Train both models
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make train
 
 # 4. Run tests to verify
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make test
 ```
 
 ### Protocol 13: Clean Rebuild
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
-```bash
 
+```bash
 # Remove all generated files
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make clean
 
 # Full rebuild
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make data && make train
 ```
 
 ## Testing Protocols
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 
 ### Protocol 14: Running Tests
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
-```bash
 
+```bash
 # Run all tests
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 make test
 
 # Run specific test file
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 python -m pytest tests/test_download_mock.py -v
 
 # Run integration tests (requires network)
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 python -m pytest tests/test_integration.py -v
 ```
 
 ### Protocol 15: Adding New Tests
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 When adding new functionality, create tests in `tests/`:
 
 ```python
-
 # tests/test_recommendations.py
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -589,12 +480,9 @@ class TestRecommendations(unittest.TestCase):
 ```
 
 ## Troubleshooting Guide
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
 
 ### Common Issues
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | `ModuleNotFoundError: surprise` | Missing dependency | `pip install scikit-surprise` |
@@ -604,14 +492,9 @@ class TestRecommendations(unittest.TestCase):
 | `MemoryError` in TF-IDF | Too many features | Reduce `max_features` parameter |
 
 ### Dependency Verification
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
-```python
 
+```python
 # Verify all dependencies
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}- type: agent_skill
-<!-- content -->
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -622,13 +505,11 @@ print("All dependencies available!")
 ```
 
 ## Future Extensions (Simulation Support)
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 *This section will be expanded to support simulation management.*
 
 ### Planned Capabilities
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 1. **Simulation Environments**
    - User behavior simulation for testing recommendation policies
    - A/B test simulation framework
@@ -645,8 +526,7 @@ print("All dependencies available!")
    - Multi-armed bandit with CF priors
 
 ## Verification Checklist
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
+
 Before any RecSys implementation is complete, verify:
 
 - [ ] **Data Integrity:** Raw data unchanged, interim data properly formatted
@@ -656,23 +536,20 @@ Before any RecSys implementation is complete, verify:
 - [ ] **Tests Passing:** All unit and integration tests pass
 
 ## Agent Log Entry Template
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
-When implementing RecSys features, log in `AGENTS_LOG.md`:
+
+When implementing RecSys features, log in `worklog.jsonl`:
 
 ```markdown
-
 ### [DATE] - RecSys Implementation (RecSys Agent)
-- status: active
-- context_dependencies: {"conventions": "MD_CONVENTIONS.md", "agents": "AGENTS.md"}<!-- content -->
-*   **Task:** [Specific feature implemented]
-*   **Actions:**
-    *   [Data pipeline changes]
-    *   [Model modifications]
-    *   [Tests added]
-*   **Verification:**
-    *   [Test results]
-    *   [Performance metrics]
-*   **Notes:**
-    *   [Any tuning recommendations or gotchas]
+
+- **Task:** [Specific feature implemented]
+- **Actions:**
+    - [Data pipeline changes]
+    - [Model modifications]
+    - [Tests added]
+- **Verification:**
+    - [Test results]
+    - [Performance metrics]
+- **Notes:**
+    - [Any tuning recommendations or gotchas]
 ```

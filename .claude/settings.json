@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__kb_mcp__knowledge_base_audit_mddia_compliance",
+      "Bash(cd \"/Users/ignacio/Documents/VS Code/GitHub Repositories/multiagentrecommendation\" && rm MD_CONVENTIONS.md && echo \"deleted MD_CONVENTIONS.md\" && ls *.md)",
+      "Bash(awk '{print $NF}')"
+    ],
+    "additionalDirectories": [
+      "/Users/ignacio/Documents/VS Code/GitHub Repositories/multiagentrecommendation"
+    ]
+  }
+}
