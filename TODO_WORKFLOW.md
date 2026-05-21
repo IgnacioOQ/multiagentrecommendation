@@ -112,6 +112,96 @@ jq -r 'select(.session_id != null) | "\(.entry_id): \(.summary)"' worklog.jsonl 
 
 ---
 
+## Reconcile stale AI_AGENTS agent docs
+
+```yaml
+status: todo
+type: task
+id: todo.reconcile_ai_agents_docs
+description: Decide whether to rewrite or remove the AI_AGENTS agent docs whose body content describes a different project.
+owner: agent
+estimate: 30m
+difficulty: low
+value: medium
+blocked_by: []
+last_checked: '2026-05-21'
+```
+
+**Context:** During the 2026-05-21 MDDIA compliance migration it was found that `AI_AGENTS/LINEARIZE_AGENT.md` and `AI_AGENTS/MC_AGENT.md` describe a *network-epistemology* simulation (`BetaAgent`, credences, `networkx`, `model.py`, `vectorized_model.py`) — not this recommender-RL repository. Their MDDIA frontmatter is now compliant, but the body content is mismatched and references files that do not exist here. `AI_AGENTS/RECSYS_AGENT.md` is consistent with this project and needs no action.
+
+**Preconditions:** none.
+
+**Steps:**
+1. Read `AI_AGENTS/LINEARIZE_AGENT.md` and `AI_AGENTS/MC_AGENT.md` in full.
+2. With the repo owner, decide per file: (a) rewrite the body to match this recommender-RL project, or (b) delete the file if the specialized agent role is not needed.
+3. Apply the decision. If rewriting, keep the existing MDDIA frontmatter; if deleting, remove the file and drop its entry from the `README.md` project tree.
+
+**Verification:** `grep -rl 'BetaAgent\|networkx\|vectorized_model' AI_AGENTS/` returns no matches, and every file listed under `AI_AGENTS/` in `README.md` exists on disk.
+
+**On completion:** Delete this entire task block from TODO_WORKFLOW.md (from the `---` above the `##` header to the `---` below the last line).
+
+---
+
+## Fix broken `torch` install in the `rec-env` conda environment
+
+```yaml
+status: todo
+type: task
+id: todo.fix_torch_install
+description: Repair the broken torch installation so the simulation modules import cleanly.
+owner: agent
+estimate: 15m
+difficulty: medium
+value: high
+blocked_by: []
+last_checked: '2026-05-21'
+```
+
+**Context:** The 2026-05-21 housekeeping run found the Phase 4 build smoke test (`python -c "import src.simulations, src.environment, src.reward_modulators"`) fails. The `rec-env` conda environment's `torch` package is corrupt: the `.dylib` files under `<env>/lib/python3.10/site-packages/torch/lib/` are symlinks pointing to a non-existent `libtorch_cpu.dylib` (and siblings). `src/reward_modulators.py` imports `torch`, so every simulation entrypoint is blocked. The unit/integration suite still passes because no test imports `torch`. Installed torch is 2.5.1; `requirements.txt` pins `torch==2.9.1`.
+
+**Platform blocker (found during the 2026-05-21 reinstall attempt):** This is an Intel Mac (`x86_64`). PyTorch dropped x86 macOS wheels after **2.2.2** — so the pinned `torch==2.9.1` (and the currently-installed 2.5.1) have **no installable distribution on this hardware**. `pip install torch==2.9.1` fails with "No matching distribution found". The newest pip wheel for this platform is `torch-2.2.2-cp310-none-macosx_10_9_x86_64.whl`. Resolution requires a decision, not just a reinstall.
+
+**Preconditions:** none.
+
+**Steps (pick one path with the repo owner):**
+1. **Downgrade path:** install the newest x86-macOS wheel — `/Users/ignacio/anaconda3/envs/rec-env/bin/python -m pip install --force-reinstall torch==2.2.2` — and update `requirements.txt` to `torch==2.2.2` so the pin matches reality. Then sanity-check that `src/reward_modulators.py` still works against the 2.2.x API.
+2. **Hardware path:** keep the `torch==2.9.1` pin and rebuild the environment on an Apple Silicon (arm64) machine, where 2.9.1 wheels exist.
+3. After whichever path: confirm the dylibs resolve — `ls -lL <env>/lib/python3.10/site-packages/torch/lib/libtorch_cpu.dylib` should show a real file, not a dangling link.
+
+**Verification:** `python -c "import src.simulations, src.environment, src.reward_modulators"` exits 0 with no `ImportError`.
+
+**On completion:** Delete this entire task block from TODO_WORKFLOW.md (from the `---` above the `##` header to the `---` below the last line).
+
+---
+
+## Correct the `ReceptorModulator` test command path in README.md
+
+```yaml
+status: todo
+type: task
+id: todo.fix_readme_test_path
+description: Update the README test command to reflect the file's location under tests/.
+owner: agent
+estimate: 5m
+difficulty: low
+value: low
+blocked_by: []
+last_checked: '2026-05-21'
+```
+
+**Context:** The 2026-05-21 housekeeping Phase 4 docs-freshness check found `README.md` § "Testing the `ReceptorModulator`" instructs `python test_receptor_modulator.py`, but the file lives at `tests/test_receptor_modulator.py`. Run from the repo root the documented command fails. `README.md` is an immutable core file — this fix requires explicit user approval before editing.
+
+**Preconditions:** Explicit user instruction to edit `README.md` (core file — not editable during routine housekeeping).
+
+**Steps:**
+1. In `README.md`, change the command in the "Testing the `ReceptorModulator`" section from `python test_receptor_modulator.py` to `python tests/test_receptor_modulator.py`.
+
+**Verification:** `grep -n "tests/test_receptor_modulator.py" README.md` returns the updated line; no bare `python test_receptor_modulator.py` remains.
+
+**On completion:** Delete this entire task block from TODO_WORKFLOW.md (from the `---` above the `##` header to the `---` below the last line).
+
+---
+
 ## Task Template
 
 Copy the block below (without the outer fences), fill in all fields, and insert it as a new `## [Task Title]` task block. Per-`##` metadata uses a fenced ` ```yaml ` block immediately after the heading (this file is a `plan` document, so the parser lifts these blocks into per-task metadata per Q8 of FRONTMATTER_MIGRATION_PLAN.md).

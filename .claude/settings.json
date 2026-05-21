@@ -3,7 +3,13 @@
     "allow": [
       "mcp__kb_mcp__knowledge_base_audit_mddia_compliance",
       "Bash(cd \"/Users/ignacio/Documents/VS Code/GitHub Repositories/multiagentrecommendation\" && rm MD_CONVENTIONS.md && echo \"deleted MD_CONVENTIONS.md\" && ls *.md)",
-      "Bash(awk '{print $NF}')"
+      "Bash(awk '{print $NF}')",
+      "Bash(pip list *)",
+      "Bash(/Users/ignacio/anaconda3/envs/rec-env/bin/python -m pip install --force-reinstall --no-deps torch==2.9.1)",
+      "Bash(/Users/ignacio/anaconda3/envs/rec-env/bin/python -c \"import platform; print\\(platform.machine\\(\\), platform.platform\\(\\)\\)\")",
+      "Bash(conda list *)",
+      "Bash(conda search *)",
+      "Bash(pip download *)"
     ],
     "additionalDirectories": [
       "/Users/ignacio/Documents/VS Code/GitHub Repositories/multiagentrecommendation"

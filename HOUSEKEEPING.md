@@ -254,8 +254,8 @@ Update the `last_checked` field in this file's metadata header to today's date.
 
 ## Latest Report
 
-**Date:** 2026-02-18
-**Trigger:** Routine housekeeping run alongside a documentation update (run by Jules; migrated here from the legacy AI_AGENTS/HOUSEKEEPING.md).
+**Date:** 2026-05-21
+**Trigger:** Routine housekeeping run (user-invoked).
 
 ```yaml
 format:        n/a
@@ -263,15 +263,24 @@ lint:          n/a
 types:         n/a
 tests:         { passed: 2, failed: 0, skipped: 1 }
 integration:   { passed: 1, failed: 0, skipped: 0 }
-dependencies:  ok
+dependencies:  107 outdated
 dead_code:     n/a
-build:         ok
-docs:          ok
+build:         FAIL — torch import error (missing libtorch_cpu.dylib)
+docs:          1 drift item
 ```
 
 ### Notable
 
-The project's directory-structure documentation was corrected (removed incorrect "Monorepo / Backend / Frontend" references). Missing dependencies (`pandas`, `requests`, `torch`, `statsmodels`, etc.) were installed to make tests pass. `tests/test_download_mock.py` (2 tests) and `tests/test_integration.py` (1 test) passed; `tests/test_receptor_modulator.py` is a script-based visual test with no assertions and was not run (counted as skipped).
+`tests/test_download_mock.py` (2 passed) and `tests/test_integration.py` (1 passed) are green — counts steady against the 2026-02-18 baseline. `tests/test_receptor_modulator.py` remains a script-based visual test with no assertions (counted as skipped).
+
+Phase 4 build smoke (`import src.simulations`) **fails**: the `rec-env` conda environment's `torch` install is broken — the dylibs under `torch/lib/` are symlinks to a non-existent `libtorch_cpu.dylib`. The unit/integration suite is unaffected because no test imports `torch`/`reward_modulators`, but any simulation run is blocked. The repo code is not at fault — this is local environment corruption.
+
+`requirements.txt` pins drift from the `rec-env` interpreter: torch 2.9.1→2.5.1, numpy 2.3.2→1.26.4, pandas 2.3.2→2.3.1, matplotlib 3.10.5→3.10.0, scipy 1.16.1→1.15.3. 107 packages report newer releases (routine for a long-lived conda env).
+
+### Outstanding
+
+- **[filed → TODO_WORKFLOW.md]** Broken `torch` install in `rec-env` blocks the build smoke test.
+- **[filed → TODO_WORKFLOW.md]** `README.md` § "Testing the ReceptorModulator" gives `python test_receptor_modulator.py`, but the file lives at `tests/test_receptor_modulator.py`.
 
 ---
 
