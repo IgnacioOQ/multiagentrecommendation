@@ -42,3 +42,14 @@
     *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
     *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
     *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
+
+### Housekeeping Update
+*   **Date:** 2026-05-21
+*   **Summary:** Performed full housekeeping protocol on `modulators_adjustments` branch.
+    *   Checked out the branch and resynced with origin.
+    *   Tracked project dependencies and verified dependency network layout.
+    *   Found initial errors running unit tests (missing `numpy`); fixed by running `pip install -r requirements.txt`.
+    *   Executed unit tests in `tests/` directory (all 13 tests passed).
+    *   Converted Jupyter Notebooks in `notebooks/` to python scripts using `nbconvert`.
+    *   To prevent execution timeouts, modified large step loops in `testing_peaks.py`, `testing_rows.py`, and `testing_homeostasis.py` to smaller step quantities, and adjusted visual displays.
+    *   Generated updated housekeeping report in `HOUSEKEEPING.md` according to formatting constraints.
