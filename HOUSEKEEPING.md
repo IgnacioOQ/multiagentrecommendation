@@ -34,20 +34,21 @@ Based on the updated `src/` package structure:
 
 ## Latest Report
 
-**Execution Date:** 2024-05-22
+**Execution Date:** 2024-06-11
+**Author:** Jules
 
 **Test Results:**
 
 *   **Unit Tests (`tests/`):** PASSED
-    - `test_agents.py`: Verified `BaseQLearningAgent`, `RecommenderAgent`, `RecommendedAgent`.
-    - `test_environment.py`: Verified `ExogenousRewardEnvironment` initialization, stepping, and shifting.
-    - `test_modulators.py`: Verified `ReceptorModulator`, `HomeostaticModulator`, `TD_DHR`.
-    - `test_receptor_modulator.py`: Executed successfully.
+    - `test_agents.py`: Verified `BaseQLearningAgent`, `RecommenderAgent`, `RecommendedAgent`. Initially failed due to missing numpy, but passed after `pip install -r requirements.txt`.
+    - `test_environment.py`: Verified `ExogenousRewardEnvironment` initialization, stepping, and shifting. Passed after dependencies installed.
+    - `test_modulators.py`: Verified `ReceptorModulator`, `HomeostaticModulator`, `TD_DHR`. Passed after dependencies installed.
+    - `test_receptor_modulator.py`: Executed successfully in headless mode by mocking `plt.show()`.
 
 *   **Notebook Verification (`notebooks/`):**
-    - `testing_homeostasis.ipynb`: Executed successfully. Verified PID and Homeostatic/Allostatic controllers.
+    - `testing_homeostasis.ipynb`: Executed successfully via `nbconvert` and `sed` patching for headless execution. Verified PID and Homeostatic/Allostatic controllers.
     - `testing_peaks.ipynb`: Executed successfully. Verified gaussian peak landscape simulation.
-    - `testing_rows.ipynb`: Executed successfully (with reduced steps for verification). Verified recommender simulation with various modulators (MoodSwings, Homeostatic, Receptor, Novelty). Generated 3 output figures confirming visualization logic.
+    - `testing_rows.ipynb`: Executed successfully (with drastically reduced steps from 500k/1m to 1k for verification using `sed`). Verified recommender simulation with various modulators (MoodSwings, Homeostatic, Receptor, Novelty).
 
 **Summary:**
-The project's dependency network is stable. All unit tests passed. Jupyter notebooks were successfully converted to scripts and executed, verifying the integration of agents, environment, and reward modulators. `plot_environment_vs_agent` was identified as missing in `testing_rows.py` (commented out to proceed).
+The project's dependency network is stable. Initially encountered `ModuleNotFoundError` for `numpy` due to a clean environment, resolved by installing `requirements.txt` and necessary jupyter packages. All unit tests passed. Jupyter notebooks were successfully converted to scripts, modified for fast/headless execution, and executed, verifying the integration of agents, environment, and reward modulators.

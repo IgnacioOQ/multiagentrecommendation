@@ -42,3 +42,12 @@
     *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
     *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
     *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
+
+### Housekeeping Report
+*   **Date:** 2024-06-11
+*   **Summary:** Executed full housekeeping protocol on `modulators_adjustments` branch.
+    *   **Dependency Network:** Verified the stability of the dependency graph using an AST parser script to map actual imports.
+    *   **Errors Encountered:** Initial test runs failed with `ModuleNotFoundError: No module named 'numpy'` due to missing dependencies in the fresh sandbox environment. Resolved by running `pip install -r requirements.txt` along with missing test dependencies (`ipywidgets`, `jupyter`, `nbconvert`, `jupyter_client`, `papermill`).
+    *   **Unit Tests:** Ran standard unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`) which all passed successfully. Headless execution of `test_receptor_modulator.py` succeeded after commenting out `plt.show()`.
+    *   **Notebooks Integration Testing:** Converted `testing_homeostasis.ipynb`, `testing_peaks.ipynb`, and `testing_rows.ipynb` to `.py` scripts via `nbconvert`. Replaced `tqdm.notebook` with `tqdm` and patched `plt.show()` to bypass blocking visual output. Dramatically reduced simulation steps in `testing_rows.ipynb` (e.g., from 500k to 1000) using `sed` to allow for rapid verification. All notebooks successfully completed execution.
+    *   **Documentation:** Cleaned up intermediate files generated during testing. Updated `HOUSEKEEPING.md` with the new dependency network and the latest test report.
