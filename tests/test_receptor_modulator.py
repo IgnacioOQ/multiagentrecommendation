@@ -59,7 +59,7 @@ def test_receptor_modulator_behavior(alpha=0.001, beta=0.01, desensitization_thr
 
     plt.tight_layout()
     plt.savefig("receptor_modulator_test.png")
-    plt.show()
+    # plt.show()
 
 if __name__ == "__main__":
     test_receptor_modulator_behavior()
