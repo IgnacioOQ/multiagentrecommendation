@@ -35,6 +35,16 @@
         *   Verified notebook execution in `notebooks/` (via conversion to scripts).
     *   Updated `HOUSEKEEPING.md` with the latest dependency graph and test report.
 
+### Housekeeping
+*   **Date:** 2026-06-18
+*   **Summary:** Executed standard housekeeping protocol.
+    *   **Initial State:** Repository required dependencies to be installed (`pip install -r requirements.txt`) as initial `unittest discover` failed due to missing `numpy`.
+    *   Ran `pip install -r requirements.txt`.
+    *   Executed all unit tests (`python -m unittest discover tests`) successfully.
+    *   Converted and ran notebook tests (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) as headless scripts after mocking `plt.show()` and reducing step counts. All passed.
+    *   Cleaned up generated scripts and `.png` files.
+    *   Updated `HOUSEKEEPING.md` with the new test report.
+
 ### Verification & Housekeeping
 *   **Date:** 2024-05-22
 *   **Summary:** Executed full housekeeping protocol on `modulators_adjustments` branch.
