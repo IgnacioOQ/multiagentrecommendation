@@ -34,20 +34,24 @@ Based on the updated `src/` package structure:
 
 ## Latest Report
 
-**Execution Date:** 2024-05-22
+**Execution Date:** 2026-06-18
+**Author:** Jules
 
 **Test Results:**
 
-*   **Unit Tests (`tests/`):** PASSED
+*   **Initial Setup & Environment:**
+    - Encountered `ModuleNotFoundError` for `numpy` when running `unittest discover`. Fixed by installing dependencies from `requirements.txt`.
+
+*   **Unit Tests (`tests/`):** PASSED (after dependency installation)
     - `test_agents.py`: Verified `BaseQLearningAgent`, `RecommenderAgent`, `RecommendedAgent`.
     - `test_environment.py`: Verified `ExogenousRewardEnvironment` initialization, stepping, and shifting.
     - `test_modulators.py`: Verified `ReceptorModulator`, `HomeostaticModulator`, `TD_DHR`.
     - `test_receptor_modulator.py`: Executed successfully.
 
 *   **Notebook Verification (`notebooks/`):**
-    - `testing_homeostasis.ipynb`: Executed successfully. Verified PID and Homeostatic/Allostatic controllers.
-    - `testing_peaks.ipynb`: Executed successfully. Verified gaussian peak landscape simulation.
-    - `testing_rows.ipynb`: Executed successfully (with reduced steps for verification). Verified recommender simulation with various modulators (MoodSwings, Homeostatic, Receptor, Novelty). Generated 3 output figures confirming visualization logic.
+    - `testing_homeostasis.ipynb`: Converted and executed successfully headless (with mocked `plt.show()`).
+    - `testing_peaks.ipynb`: Converted and executed successfully headless after reducing `n_steps`.
+    - `testing_rows.ipynb`: Converted and executed successfully headless after reducing `n_steps`.
 
 **Summary:**
-The project's dependency network is stable. All unit tests passed. Jupyter notebooks were successfully converted to scripts and executed, verifying the integration of agents, environment, and reward modulators. `plot_environment_vs_agent` was identified as missing in `testing_rows.py` (commented out to proceed).
+The project's dependency network is stable. All unit tests passed after initial dependency fix. Jupyter notebooks were successfully converted to headless scripts and executed, verifying the integration of agents, environment, and reward modulators. Intermediate output figures and scripts were deleted.
