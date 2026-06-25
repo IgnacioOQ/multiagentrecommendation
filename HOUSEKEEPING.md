@@ -9,45 +9,31 @@
 # Current Project Housekeeping
 
 ## Dependency Network
-
-Based on the updated `src/` package structure:
-
-- **Core Modules (in `src/`):**
-    - `src/imports.py`: Base dependencies (numpy, torch, etc.).
-    - `src/utils.py`: Depends on `src.imports`.
-    - `src/agents.py`: Depends on `src.imports`.
-    - `src/environment.py`: Depends on `src.imports`.
-    - `src/reward_modulators.py`: Depends on `src.imports`, `src.agents`.
-    - `src/simulations.py`: Depends on `src.imports`, `src.agents`, `src.environment`, `src.reward_modulators`.
-    - `src/stationarity_analysis.py`: Depends on `src.imports`.
-
-- **Tests (in `tests/`):**
-    - `tests/test_agents.py`: Depends on `src.agents`.
-    - `tests/test_environment.py`: Depends on `src.environment`.
-    - `tests/test_modulators.py`: Depends on `src.reward_modulators`.
-    - `tests/test_receptor_modulator.py`: Depends on `src.reward_modulators`.
-
-- **Notebooks (in `notebooks/`):**
-    - `notebooks/testing_homeostasis.ipynb`: Depends on `src.reward_modulators`.
-    - `notebooks/testing_peaks.ipynb`: Depends on `src.*`.
-    - `notebooks/testing_rows.ipynb`: Depends on `src.*`.
+- `src/imports.py`: Base imports.
+- `src/agents.py`: Depends on `src.imports`.
+- `src/environment.py`: Depends on `src.imports`.
+- `src/reward_modulators.py`: Depends on `torch`, `src.imports`, `src.agents`, `tqdm`.
+- `src/simulations.py`: Depends on `src.imports`, `src.reward_modulators`, `src.agents`, `src.environment`.
+- `src/utils.py`: Depends on `src.imports`.
+- `src/stationarity_analysis.py`: Depends on `src.imports`.
 
 ## Latest Report
 
-**Execution Date:** 2024-05-22
+**Execution Date:** 2026-06-25
 
 **Test Results:**
 
 *   **Unit Tests (`tests/`):** PASSED
-    - `test_agents.py`: Verified `BaseQLearningAgent`, `RecommenderAgent`, `RecommendedAgent`.
-    - `test_environment.py`: Verified `ExogenousRewardEnvironment` initialization, stepping, and shifting.
-    - `test_modulators.py`: Verified `ReceptorModulator`, `HomeostaticModulator`, `TD_DHR`.
-    - `test_receptor_modulator.py`: Executed successfully.
+    - Encountered initial error `ModuleNotFoundError: No module named 'numpy'` across all test files.
+    - Fixed by running `pip install -r requirements.txt`.
+    - Afterwards, all 13 tests passed successfully.
 
 *   **Notebook Verification (`notebooks/`):**
-    - `testing_homeostasis.ipynb`: Executed successfully. Verified PID and Homeostatic/Allostatic controllers.
-    - `testing_peaks.ipynb`: Executed successfully. Verified gaussian peak landscape simulation.
-    - `testing_rows.ipynb`: Executed successfully (with reduced steps for verification). Verified recommender simulation with various modulators (MoodSwings, Homeostatic, Receptor, Novelty). Generated 3 output figures confirming visualization logic.
+    - `testing_homeostasis.ipynb`: Executed successfully.
+    - `testing_peaks.ipynb`: Executed successfully.
+    - `testing_rows.ipynb`: Executed successfully.
+    - Converted notebooks using `nbconvert`, replaced `tqdm.notebook` with `tqdm`, commented out `plt.show()`, and reduced `n_steps` for faster verification.
 
 **Summary:**
-The project's dependency network is stable. All unit tests passed. Jupyter notebooks were successfully converted to scripts and executed, verifying the integration of agents, environment, and reward modulators. `plot_environment_vs_agent` was identified as missing in `testing_rows.py` (commented out to proceed).
+Housekeeping tasks complete. The dependency graph was mapped. Missing dependencies were installed, clearing initial errors, and all tests and notebook simulations successfully verified without regressions.
+**Author:** AI Assistant
