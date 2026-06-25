@@ -42,3 +42,12 @@
     *   Ran unit tests (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
     *   Executed notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) by converting to scripts, patching `tqdm` imports, and creating non-blocking plots.
     *   Generated new report in `HOUSEKEEPING.md` and updated `AGENTS_LOG.md`.
+
+### Housekeeping
+*   **Date:** 2026-06-25
+*   **Summary:** Executed full housekeeping protocol.
+    *   Installed requirements.
+    *   Mapped dependency network using AST script.
+    *   Ran unit tests in `tests/` (`test_agents.py`, `test_environment.py`, `test_modulators.py`, `test_receptor_modulator.py`); all passed.
+    *   Converted Jupyter notebooks (`testing_homeostasis.ipynb`, `testing_peaks.ipynb`, `testing_rows.ipynb`) to scripts, applied required sed patches (`tqdm`, `plt.show()`, `n_steps`), and verified their successful execution.
+    *   Initial `ModuleNotFoundError: No module named 'numpy'` errors due to missing dependencies were recorded and fixed.
